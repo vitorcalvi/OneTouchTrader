@@ -199,7 +199,7 @@ export default defineConfig(({ mode }) => {
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom', 'lucide-react', 'lightweight-charts', '@xyflow/react']
+      include: ['react', 'react-dom', 'lucide-react']
     },
 
     test: {
