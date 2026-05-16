@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"node src/backend/server.mjs\" \"vite\"",
-    "server": "node src/backend/server.mjs",
+    "dev": "concurrently \"vite\" \"node src/backend/alpaca/server-refactored.mjs\"",
+    "server": "node src/backend/alpaca/server-refactored.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest"
