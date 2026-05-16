@@ -1,0 +1,9 @@
+{
+  "description": "Single authoritative source for Aggressive Scalper Strategy configuration",
+  "aggressiveMode": true,
+  "pollingInterval": 5,
+  "atrMultiplier": 0.15,
+  "defaultTimeInForce": "ioc",
+  "defaultQty": 100,
+  "extendedHours": false
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "types": ["vite/client", "node"],
+    "composite": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "vite-env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

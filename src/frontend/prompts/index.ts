@@ -1,0 +1,1 @@
+export { MOBILE_TRADING_PROMPT, QUICK_DECISION_PROMPT } from './mobileTradingPrompt';

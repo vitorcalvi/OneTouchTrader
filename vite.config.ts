@@ -37,9 +37,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
-        "@/shared": path.resolve(__dirname, "./src/shared"),
-        "@/services": path.resolve(__dirname, "./src/services"),
+        "@": path.resolve(__dirname, "./src/frontend"),
+        "@/shared": path.resolve(__dirname, "./src/frontend/shared"),
+        "@/services": path.resolve(__dirname, "./src/frontend/services"),
       },
     },
 
@@ -199,7 +199,7 @@ export default defineConfig(({ mode }) => {
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom', 'lucide-react']
+      include: ['react', 'react-dom', 'lucide-react', 'lightweight-charts', '@xyflow/react']
     },
 
     test: {
