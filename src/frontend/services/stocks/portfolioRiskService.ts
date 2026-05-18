@@ -65,8 +65,21 @@ class PortfolioRiskService {
   };
 
   private subscribers: Set<(state: PortfolioRiskState) => void> = new Set();
-  private thresholds: RiskThresholds = DEFAULT_THRESHOLDS;
-  private config: RiskConfig = DEFAULT_RISK_CONFIG;
+  private dailyLoss: number = 0;
+  private dailyLossLimit: number = 0;
+
+  setDailyLossLimit(limit: number): void {
+    this.dailyLossLimit = limit;
+  }
+
+  updateDailyLoss(pnl: number): void {
+    this.dailyLoss = pnl;
+  }
+
+  checkDailyLossCap(): boolean {
+    if (this.dailyLossLimit === 0) return true;
+    return this.dailyLoss >= -this.dailyLossLimit;
+  }
 
   subscribe(callback: (state: PortfolioRiskState) => void): () => void {
     this.subscribers.add(callback);
@@ -149,8 +162,9 @@ class PortfolioRiskService {
     return stopLossPrices;
   }
 
-  getPositionRisk(symbol: string): PositionRisk | null {
-    return this.state.positionRisks.find(p => p.symbol === symbol) || null;
+  getPositionWeight(symbol: string): number {
+    const pos = this.state.positionRisks.find(p => p.symbol === symbol);
+    return pos ? pos.weight : 0;
   }
 
   getTotalRisk(_equity: number): number {

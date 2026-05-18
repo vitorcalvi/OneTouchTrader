@@ -1,5 +1,4 @@
 import type { Order } from '../../types';
-import { formatStockPrice } from '../shared/utils/priceFormatters';
 
 export interface StockOrderParams {
   symbol: string;
@@ -17,11 +16,24 @@ export interface StockOrderParams {
   trail_percent?: string;
 }
 
+import { portfolioRiskService } from './portfolioRiskService';
+
 export class StockOrderManager {
   async submitOrder(
     order: StockOrderParams,
     httpFetch: (url: string, options: RequestInit) => Promise<Response>
   ): Promise<Order> {
+    // P0: Check Daily Loss Cap
+    if (!portfolioRiskService.checkDailyLossCap()) {
+      throw new Error("Daily loss cap reached. Trading halted.");
+    }
+
+    // P1: Check Max Position Size
+    const currentWeight = portfolioRiskService.getPositionWeight(order.symbol);
+    if (currentWeight * 100 > 25) { // Using 25% threshold as default
+      throw new Error(`Position size for ${order.symbol} exceeds maximum concentration limit.`);
+    }
+
     console.log('[StockOrderManager] submitOrder called with:', JSON.stringify(order));
     const payload: Record<string, unknown> = {
       symbol: order.symbol.toUpperCase(),
@@ -70,11 +82,7 @@ export class StockOrderManager {
       side: params.side,
       type: 'limit',
       time_in_force: 'day',
-      limit_price: params.limit_price || formatStockPrice(
-        params.side === 'buy'
-          ? Number(params.limit_price || 0) * 0.99
-          : Number(params.limit_price || 0) * 1.01
-      ),
+      limit_price: params.limit_price,
       extended_hours: params.extended_hours,
       order_class: 'bracket',
       stop_loss: stopLoss,

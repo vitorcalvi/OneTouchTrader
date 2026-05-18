@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
-import { AlpacaService } from '@/services/stocks';
+import { AlpacaService, OrderUpdate } from '@/services/stocks';
 import { Account, Position, Order } from '@/types';
 import type { TradingMode, ClosedPosition } from '../index';
 
@@ -305,7 +305,7 @@ useEffect(() => {
       wsConnecting.current = false;
     };
 
-    const handleOrderUpdate = (update: any) => {
+    const handleOrderUpdate = (update: OrderUpdate) => {
       console.log('[WebSocket] Order update:', update);
       setOrders(prev => {
         const updatedOrder = update.order;

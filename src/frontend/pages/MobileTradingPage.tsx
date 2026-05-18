@@ -28,7 +28,7 @@ function safeErrorMessage(err: unknown, fallback: string): string {
 }
 
 type MobileOrderType = 'market' | 'limit' | 'stop_limit';
-type PresetId = 'o-sl' | 'ladder' | 'l-and-f' | 'preset4';
+type PresetId = 'o-sl' | 'ladder' | 'l-and-f' | 'sl-tp';
 
 const LONG_PRESS_MS = 500;
 
@@ -485,6 +485,53 @@ export function MobileTradingPage() {
     }
   }, [service, activeSymbol, currentPrice, limitPrice, activeTier, computedQty, positionSide, positions, account, env, tradingCfg, loadData, loadOpenOrders, presetValue]);
 
+  const handleSlTp = useCallback(async (side: 'buy' | 'sell') => {
+    if (!service || !currentPrice) return;
+
+    const isLongMode = positionSideRef.current === 'long';
+    const triggerPrice = limitPrice ?? currentPrice;
+
+    if (triggerPrice == null || !Number.isFinite(triggerPrice) || triggerPrice <= 0) {
+      toast.error('Price unavailable — wait for a live quote');
+      return;
+    }
+
+    const slPct = (env.autoStopLossPct ?? 1) / 100;
+    const tpPct = (env.autoTakeProfitPct ?? 2) / 100;
+
+    const slPrice = side === 'buy' ? triggerPrice * (1 - slPct) : triggerPrice * (1 + slPct);
+    const tpPrice = side === 'buy' ? triggerPrice * (1 + tpPct) : triggerPrice * (1 - tpPct);
+
+    const orderType: MobileOrderType = activeTier === 'M' ? 'market' : activeTier === 'L' ? 'limit' : 'stop_limit';
+    
+    const basePayload: any = {
+      symbol: activeSymbol,
+      qty: String(computedQty),
+      side,
+      time_in_force: 'day',
+      type: orderType,
+      order_class: 'bracket',
+      stop_loss: { stop_price: slPrice.toFixed(2) },
+      take_profit: { limit_price: tpPrice.toFixed(2) },
+    };
+
+    if (orderType === 'limit' && triggerPrice) basePayload.limit_price = triggerPrice.toFixed(2);
+    if (orderType === 'stop_limit') {
+      const slippagePct = 0.001;
+      basePayload.stop_price = triggerPrice.toFixed(2);
+      basePayload.limit_price = (side === 'buy' ? triggerPrice * (1 + slippagePct) : triggerPrice * (1 - slippagePct)).toFixed(2);
+    }
+
+    try {
+      await service.submitOrder(basePayload);
+      toast.success(`SL-TP ${side.toUpperCase()} ${computedQty} ${activeSymbol} @ $${triggerPrice.toFixed(2)}, SL $${slPrice.toFixed(2)}, TP $${tpPrice.toFixed(2)}`);
+      loadData();
+      void loadOpenOrders();
+    } catch (err) {
+      toast.error(`SL-TP order failed: ${safeErrorMessage(err, 'Order failed')}`);
+    }
+  }, [service, activeSymbol, currentPrice, limitPrice, activeTier, computedQty, env.autoStopLossPct, env.autoTakeProfitPct, loadData, loadOpenOrders]);
+
   const handleLadder = useCallback(async (side: 'buy' | 'sell') => {
     if (!service || !currentPrice) return;
     if (activeTier === 'M') { toast.error('Ladder requires LIMIT or STOP LIMIT'); return; }
@@ -683,8 +730,8 @@ export function MobileTradingPage() {
     try {
       if (activePresets.has('ladder')) return await handleLadder('buy');
       if (activePresets.has('o-sl')) return await handleOsl('buy');
+      if (activePresets.has('sl-tp')) return await handleSlTp('buy');
       if (activePresets.has('l-and-f')) return await handleLiveAndForget('buy');
-
       if (!canTrade || !service || !currentPrice) return;
       const isLongMode = positionSideRef.current === 'long';
       let qty = computedQty;
@@ -737,8 +784,8 @@ export function MobileTradingPage() {
     try {
       if (activePresets.has('ladder')) return await handleLadder('sell');
       if (activePresets.has('o-sl')) return await handleOsl('sell');
+      if (activePresets.has('sl-tp')) return await handleSlTp('sell');
       if (activePresets.has('l-and-f')) return await handleLiveAndForget('sell');
-
       if (!canTrade || !service || !currentPrice) return;
       const isLongMode = positionSideRef.current === 'long';
       let qty = computedQty;
@@ -1098,9 +1145,9 @@ return (
 
       {/* Presets */}
       <section className="grid grid-cols-4 gap-2">
-        {(['o-sl', 'ladder', 'l-and-f', 'preset4'] as PresetId[]).map((id) => {
+        {(['o-sl', 'ladder', 'l-and-f', 'sl-tp'] as PresetId[]).map((id) => {
           const isOn = activePresets.has(id);
-          const label = id === 'o-sl' ? 'O-SL' : id === 'ladder' ? 'LADDER' : id === 'l-and-f' ? 'L&F' : 'PRE-SET';
+          const label = id === 'o-sl' ? 'O-SL' : id === 'ladder' ? 'LADDER' : id === 'l-and-f' ? 'L&F' : id === 'sl-tp' ? 'SL-TP' : 'PRE-SET';
           const isLadder = id === 'ladder';
           return (
             <PresetButton
@@ -1110,7 +1157,7 @@ return (
               onTap={() => {
                 const newSet = new Set(activePresets);
                 const isOn = newSet.has(id);
-                const EXCLUSIVE_PRESETS: ReadonlyArray<PresetId> = ['o-sl', 'ladder', 'l-and-f'];
+                const EXCLUSIVE_PRESETS: ReadonlyArray<PresetId> = ['o-sl', 'ladder', 'l-and-f', 'sl-tp'];
                 if (isOn) {
                   newSet.delete(id);
                 } else {
@@ -1118,6 +1165,11 @@ return (
                     EXCLUSIVE_PRESETS.forEach(p => newSet.delete(p));
                   }
                   newSet.add(id);
+                  if (id === 'sl-tp') {
+                    // SL/TP logic using env variables
+                    // The preset activation is enough to set the mode, 
+                    // the order execution happens in handleBuyWithPreset/handleSellWithPreset
+                  }
                 }
                 setActivePresets(newSet);
               }}

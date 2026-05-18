@@ -272,6 +272,7 @@ async function alpacaRequest(
   };
 
   if (body && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    // Ensure credentials are never leaked to downstream API body
     const { __alpacaKeyId: _k, __alpacaSecretKey: _s, ...sanitizedBody } = body;
     options.body = JSON.stringify(sanitizedBody);
   }

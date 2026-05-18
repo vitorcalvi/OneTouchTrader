@@ -4,6 +4,7 @@
 
 // Alpaca Service
 export { AlpacaService } from './AlpacaService';
+export type { OrderUpdate } from './AlpacaService';
 
 // =============================================================================
 // Types

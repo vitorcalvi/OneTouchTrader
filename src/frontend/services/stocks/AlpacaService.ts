@@ -18,6 +18,13 @@ import {
 // All Alpaca API calls route through backend at /api/alpaca/*
 // Backend adds credentials before forwarding to Alpaca API
 const PROXY_BASE = "/api/alpaca";
+
+export interface OrderUpdate {
+  T: "trade_update";
+  event: string;
+  execution_id: string;
+  order: Order;
+}
 const PROXY_DATA = "/api/alpaca";
 
 export class AlpacaService {
@@ -1024,11 +1031,19 @@ export class AlpacaService {
           }
           if (msg.T === "trade_update") {
             const orderId = msg.order?.id;
+            const update = msg as OrderUpdate;
+
             if (orderId && this.orderUpdateListeners.has(orderId)) {
-              this.orderUpdateListeners.get(orderId)!(msg);
+              this.orderUpdateListeners.get(orderId)!(update);
             }
+
+            // Prune listener if order is in a terminal state
+            if (orderId && ['filled', 'canceled', 'expired'].includes(msg.order.status)) {
+              this.orderUpdateListeners.delete(orderId);
+            }
+
             if (this.wsOnOrderUpdate) {
-              this.wsOnOrderUpdate(msg);
+              this.wsOnOrderUpdate(update);
             }
           }
         });

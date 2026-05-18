@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 
-// Error types for different categories
 export type ErrorCategory = 
   | 'network'
   | 'authentication'
@@ -48,7 +47,6 @@ interface UseErrorHandlerReturn {
   reportError: (error: Error | string, category?: ErrorCategory, context?: Record<string, any>) => Promise<void>;
 }
 
-// Global error metrics (shared across all instances)
 const globalMetrics: ErrorMetrics = {
   totalErrors: 0,
   errorsByCategory: {
@@ -64,9 +62,8 @@ const globalMetrics: ErrorMetrics = {
   sessionStartTime: Date.now(),
 };
 
-// Rate limiting for error reporting
 const errorRateLimit = {
-  windowMs: 60000, // 1 minute
+  windowMs: 60000,
   maxErrors: 10,
   timestamps: [] as number[],
 };
@@ -83,18 +80,18 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
 
   const [error, setError] = useState<Error | null>(null);
   const [errorInfo, setErrorInfo] = useState<AppErrorInfo | null>(null);
-  const [metrics, setMetrics] = useState<ErrorMetrics>({ ...globalMetrics });
-  const metricsRef = useRef(metrics);
+  const metricsRef = useRef<ErrorMetrics>({ ...globalMetrics });
 
-  // Update metrics ref when state changes
-  useEffect(() => {
-    metricsRef.current = metrics;
-  }, [metrics]);
+  const updateMetrics = useCallback((update: Partial<ErrorMetrics> | ((prev: ErrorMetrics) => ErrorMetrics)) => {
+    if (typeof update === 'function') {
+      metricsRef.current = update(metricsRef.current);
+    } else {
+      metricsRef.current = { ...metricsRef.current, ...update };
+    }
+  }, []);
 
-  // Rate limiting check
   const isWithinRateLimit = useCallback((): boolean => {
     const now = Date.now();
-    // Remove old timestamps
     errorRateLimit.timestamps = errorRateLimit.timestamps.filter(
       timestamp => now - timestamp < errorRateLimit.windowMs
     );
@@ -102,7 +99,6 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     return errorRateLimit.timestamps.length < errorRateLimit.maxErrors;
   }, []);
 
-  // Calculate errors per minute
   const calculateErrorsPerMinute = useCallback((): number => {
     const now = Date.now();
     const recentErrors = errorRateLimit.timestamps.filter(
@@ -111,7 +107,6 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     return recentErrors.length;
   }, []);
 
-  // Create error info object
   const createErrorInfo = useCallback((
     error: Error | string,
     category: ErrorCategory,
@@ -120,7 +115,6 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     const errorObj = typeof error === 'string' ? new Error(error) : error;
     const stack = errorObj.stack;
     
-    // Try to get component stack from ErrorInfo if available
     let componentStack: string | undefined;
     try {
       const errorStack = new Error().stack;
@@ -130,7 +124,6 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
         componentStack = reactLines.slice(0, 10).join('\n');
       }
     } catch {
-      // Ignore component stack errors
     }
 
     return {
@@ -147,43 +140,36 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     };
   }, []);
 
-  // Handle error with comprehensive logging and metrics
   const handleError = useCallback((
     error: Error | string,
     category: ErrorCategory = 'unknown',
     context?: Record<string, any>
   ) => {
     try {
-      // Rate limiting
       if (!isWithinRateLimit()) {
         console.warn('Error rate limit exceeded, skipping error reporting');
         return;
       }
 
-      // Add timestamp for rate limiting
       errorRateLimit.timestamps.push(Date.now());
 
       const errorInfo = createErrorInfo(error, category, context);
       
-      // Update global metrics
       if (enableMetrics) {
         globalMetrics.totalErrors++;
         globalMetrics.errorsByCategory[category]++;
         globalMetrics.lastError = errorInfo;
         globalMetrics.errorsPerMinute = calculateErrorsPerMinute();
         
-        // Cap total errors to prevent memory issues
         if (globalMetrics.totalErrors > maxErrors * 10) {
           globalMetrics.totalErrors = Math.floor(maxErrors * 0.8);
         }
       }
 
-      // Update local state
       setError(typeof error === 'string' ? new Error(error) : error);
       setErrorInfo(errorInfo);
-      setMetrics({ ...globalMetrics });
+      updateMetrics({ ...globalMetrics });
 
-      // Enhanced logging
       const logMessage = `[${category.toUpperCase()}] ${errorInfo.message}`;
       
       if (category === 'network') {
@@ -206,12 +192,10 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
         });
       }
 
-      // Call optional error handler
       if (onError) {
         onError(errorInfo);
       }
 
-      // Trigger custom error event for monitoring
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('appError', { 
           detail: errorInfo 
@@ -219,18 +203,15 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
       }
 
     } catch (handlerError) {
-      // Fallback logging if error handler itself fails
       console.error('Error in error handler:', handlerError);
     }
-  }, [maxErrors, enableMetrics, onError, createErrorInfo, isWithinRateLimit, calculateErrorsPerMinute]);
+  }, [maxErrors, enableMetrics, onError, createErrorInfo, isWithinRateLimit, calculateErrorsPerMinute, updateMetrics]);
 
-  // Clear current error
   const clearError = useCallback(() => {
     setError(null);
     setErrorInfo(null);
   }, []);
 
-  // Reset metrics
   const resetMetrics = useCallback(() => {
     globalMetrics.totalErrors = 0;
     globalMetrics.errorsByCategory = {
@@ -245,10 +226,9 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     globalMetrics.errorsPerMinute = 0;
     errorRateLimit.timestamps = [];
     
-    setMetrics({ ...globalMetrics });
-  }, []);
+    updateMetrics({ ...globalMetrics });
+  }, [updateMetrics]);
 
-  // Report error to external service (placeholder for telemetry)
   const reportError = useCallback(async (
     error: Error | string,
     category: ErrorCategory = 'unknown',
@@ -259,10 +239,6 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
     const errorInfo = createErrorInfo(error, category, context);
 
     try {
-      // Here you would send to your telemetry service
-      // Example: Sentry, LogRocket, Datadog, etc.
-      
-      // For now, we'll just log it
       logger.info('Error reported to telemetry', { 
         errorInfo,
         sessionId,
@@ -271,26 +247,24 @@ export const useErrorHandler = (options: UseErrorHandlerOptions = {}): UseErrorH
 
     } catch (reportError) {
       console.error('Failed to report error to telemetry:', reportError);
-      // Don't throw here to avoid infinite error loops
     }
   }, [enableTelemetry, createErrorInfo]);
 
-  // Update metrics periodically
   useEffect(() => {
     const interval = setInterval(() => {
       if (enableMetrics) {
         globalMetrics.errorsPerMinute = calculateErrorsPerMinute();
-        setMetrics({ ...globalMetrics });
+        updateMetrics({ ...globalMetrics });
       }
-    }, 10000); // Update every 10 seconds
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, [enableMetrics, calculateErrorsPerMinute]);
+  }, [enableMetrics, calculateErrorsPerMinute, updateMetrics]);
 
   return {
     error,
     errorInfo,
-    errorMetrics: metrics,
+    errorMetrics: metricsRef.current,
     handleError,
     clearError,
     resetMetrics,

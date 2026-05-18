@@ -149,6 +149,8 @@ export async function handleCancelAllOrders(
   return { success: true, data: cancelledIds };
 }
 
+import { validateOrder } from "../../shared/order-validator.js";
+
 export async function handleCreateOrder(
   body,
   searchParams,
@@ -161,6 +163,14 @@ export async function handleCreateOrder(
   hasLiveKeys,
 ) {
   const isLive = searchParams.get("live") === "true";
+
+  // Validate payload
+  const validation = validateOrder(body);
+  if (!validation.valid) {
+    const error = new Error(`Invalid order request: ${validation.errors.join(", ")}`);
+    error.statusCode = 400;
+    throw error;
+  }
 
   // Guard: Strip invalid OTO from SELL market orders
   let order = body;
@@ -183,27 +193,11 @@ export async function handleCreateOrder(
   const effectiveIsLive = isLive && hasLiveKeys ? true : false;
 
   // Use direct API (alpacaRequest) for both auth methods
-  // The @alpacahq/alpaca-trade-api SDK wraps errors without proper statusCode
-  // alpacaRequest preserves the actual HTTP status from Alpaca's API
-  if (!reqHasAlpacaHeaders) {
-    const result = await alpacaRequest(
-      "/v2/orders",
-      "POST",
-      normalizedOrder,
-      effectiveIsLive,
-    );
-    return { success: true, data: result };
-  } else {
-    const result = await alpacaRequest(
-      "/v2/orders",
-      "POST",
-      {
-        ...normalizedOrder,
-        __alpacaKeyId: reqKeyId,
-        __alpacaSecretKey: reqSecretKey,
-      },
-      effectiveIsLive,
-    );
-    return { success: true, data: result };
-  }
+  const result = await alpacaRequest(
+    "/v2/orders",
+    "POST",
+    normalizedOrder,
+    effectiveIsLive,
+  );
+  return { success: true, data: result };
 }
