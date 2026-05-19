@@ -12,6 +12,7 @@ import { MobileSizeToggle } from '@/components/Mobile/MobileSizeToggle';
 import { MobilePriceAction } from '@/components/Mobile/MobilePriceAction';
 import { GlobalPositionManager } from '@/components/Mobile/GlobalPositionManager';
 import { MobileControlsPanel } from '@/components/Mobile/MobileControlsPanel';
+import { SettingsDrawer } from '@/components/Mobile/SettingsDrawer';
 import type { Position, Order, Account } from '@/types';
 import { safeParseFloat } from '@/shared/utils/numbers';
 import { cancelExistingExitOrders } from '@/utils/stocks/cancelExistingExitOrders';
@@ -134,6 +135,7 @@ export function MobileTradingPage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [paperAvailable, setPaperAvailable] = useState(true);
   const [liveAvailable, setLiveAvailable] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [activeSymbol, setActiveSymbol] = useState(
     tradingCfg.defaultSymbol || (mobileCfg?.tickers[0] ?? 'INTC')
@@ -215,6 +217,19 @@ export function MobileTradingPage() {
     serviceSwitchIdRef.current += 1;
     setService(new AlpacaService(config));
   }, [config]);
+
+  // Re-instantiate AlpacaService when settings change (debounced)
+  useEffect(() => {
+    const handler = () => {
+      const debounceId = setTimeout(() => {
+        serviceSwitchIdRef.current += 1;
+        setService(new AlpacaService(getEnvConfig()));
+      }, 250);
+      return () => clearTimeout(debounceId);
+    };
+    window.addEventListener('lean:settings-changed', handler);
+    return () => window.removeEventListener('lean:settings-changed', handler);
+  }, []);
 
   const handlePaperLiveChange = useCallback((newIsPaper: boolean) => {
     setIsPaper(newIsPaper);
@@ -488,7 +503,6 @@ export function MobileTradingPage() {
   const handleSlTp = useCallback(async (side: 'buy' | 'sell') => {
     if (!service || !currentPrice) return;
 
-    const isLongMode = positionSideRef.current === 'long';
     const triggerPrice = limitPrice ?? currentPrice;
 
     if (triggerPrice == null || !Number.isFinite(triggerPrice) || triggerPrice <= 0) {
@@ -496,8 +510,8 @@ export function MobileTradingPage() {
       return;
     }
 
-    const slPct = (env.autoStopLossPct ?? 1) / 100;
-    const tpPct = (env.autoTakeProfitPct ?? 2) / 100;
+    const slPct = (tradingCfg.autoStopLossPct ?? 1) / 100;
+    const tpPct = (tradingCfg.autoTakeProfitPct ?? 2) / 100;
 
     const slPrice = side === 'buy' ? triggerPrice * (1 - slPct) : triggerPrice * (1 + slPct);
     const tpPrice = side === 'buy' ? triggerPrice * (1 + tpPct) : triggerPrice * (1 - tpPct);
@@ -530,7 +544,7 @@ export function MobileTradingPage() {
     } catch (err) {
       toast.error(`SL-TP order failed: ${safeErrorMessage(err, 'Order failed')}`);
     }
-  }, [service, activeSymbol, currentPrice, limitPrice, activeTier, computedQty, env.autoStopLossPct, env.autoTakeProfitPct, loadData, loadOpenOrders]);
+  }, [service, activeSymbol, currentPrice, limitPrice, activeTier, computedQty, tradingCfg.autoStopLossPct, tradingCfg.autoTakeProfitPct, loadData, loadOpenOrders]);
 
   const handleLadder = useCallback(async (side: 'buy' | 'sell') => {
     if (!service || !currentPrice) return;
@@ -1087,6 +1101,7 @@ return (
         account={account}
         paperAvailable={paperAvailable}
         liveAvailable={liveAvailable}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Size & Ticker Selection */}
@@ -1199,6 +1214,8 @@ return (
         onCycleActive={handleCycleActiveSymbol}
         isSubmitting={isSubmitting}
       />
+
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

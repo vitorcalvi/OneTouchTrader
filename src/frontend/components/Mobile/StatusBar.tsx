@@ -6,9 +6,10 @@ interface StatusBarProps {
   account: Account | null;
   paperAvailable?: boolean;
   liveAvailable?: boolean;
+  onOpenSettings?: () => void;
 }
 
-export function StatusBar({ isPaper, onPaperLiveToggle, account, paperAvailable = true, liveAvailable = true }: StatusBarProps) {
+export function StatusBar({ isPaper, onPaperLiveToggle, account, paperAvailable = true, liveAvailable = true, onOpenSettings }: StatusBarProps) {
   return (
     <header className="flex justify-between items-center mb-1">
       <div className="flex items-center gap-2 text-sm font-semibold text-[#8B99AE]">
@@ -37,11 +38,22 @@ export function StatusBar({ isPaper, onPaperLiveToggle, account, paperAvailable 
         </button>
       </div>
 
-      <div className="text-right">
-        <div className="text-[#4A90E2] text-[10px] font-bold tracking-wider mb-0.5">POWER</div>
-        <div className="text-[#25D366] text-lg font-bold [text-shadow:0_0_10px_rgba(37,211,102,0.3)]">
-          ${account ? Math.round(parseFloat(account.equity)).toLocaleString() : '—'}
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <div className="text-[#4A90E2] text-[10px] font-bold tracking-wider mb-0.5">POWER</div>
+          <div className="text-[#25D366] text-lg font-bold [text-shadow:0_0_10px_rgba(37,211,102,0.3)]">
+            ${account ? Math.round(parseFloat(account.equity)).toLocaleString() : '—'}
+          </div>
         </div>
+        {onOpenSettings && (
+          <button
+            aria-label="Settings"
+            onClick={onOpenSettings}
+            className="p-2 text-[#8B99AE] hover:text-white transition-colors"
+          >
+            <span className="material-symbols-outlined text-xl">settings</span>
+          </button>
+        )}
       </div>
     </header>
   );

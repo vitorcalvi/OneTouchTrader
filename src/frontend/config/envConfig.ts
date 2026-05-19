@@ -23,6 +23,30 @@ const parseEnvList = (val: string | undefined, fallback: string[]): string[] => 
   return items.length > 0 ? items : fallback;
 };
 
+// Overlay helpers for settings from localStorage
+let envVersion = 0;
+function readOverrides(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('lean.settings.overrides.v1') ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+function envValue(key: string): string | undefined {
+  const o = readOverrides();
+  if (o[key] != null && o[key] !== '') return o[key];
+  return (import.meta.env as Record<string, string | undefined>)[key];
+}
+
+// Subscribe to settings changes to invalidate memoization
+if (typeof window !== 'undefined') {
+  window.addEventListener('lean:settings-changed', () => {
+    envVersion++;
+  });
+}
+
 export const isAuthEnabled = (): boolean => {
   const authEnabled = import.meta.env.VITE_AUTH_ENABLED;
   if (authEnabled === undefined || authEnabled === null || authEnabled === '') {
@@ -33,12 +57,12 @@ export const isAuthEnabled = (): boolean => {
 };
 
 export const getEnvConfig = (): AlpacaConfig => {
-  const tickers = parseEnvList(import.meta.env.VITE_MOBILE_DEFAULT_TICKERS, ['INTC', 'MU', 'MC']);
-  const presets = parseEnvList(import.meta.env.VITE_MOBILE_DEFAULT_PRESETS, ['10K', '100K', '30K', '50K']);
-  const defaultPreset = presets.includes(import.meta.env.VITE_MOBILE_DEFAULT_PRESET || '')
-    ? (import.meta.env.VITE_MOBILE_DEFAULT_PRESET as string)
+  const tickers = parseEnvList(envValue('VITE_MOBILE_DEFAULT_TICKERS'), ['INTC', 'MU', 'MC']);
+  const presets = parseEnvList(envValue('VITE_MOBILE_DEFAULT_PRESETS'), ['10K', '100K', '30K', '50K']);
+  const defaultPreset = presets.includes(envValue('VITE_MOBILE_DEFAULT_PRESET') || '')
+    ? (envValue('VITE_MOBILE_DEFAULT_PRESET') as string)
     : presets[0];
-  const tierRaw = (import.meta.env.VITE_MOBILE_DEFAULT_TIER as 'M' | 'L' | 'S') || 'L';
+  const tierRaw = (envValue('VITE_MOBILE_DEFAULT_TIER') as 'M' | 'L' | 'S') || 'L';
   const defaultTier: 'M' | 'L' | 'S' = ['M', 'L', 'S'].includes(tierRaw) ? tierRaw : 'L';
 
   return {
@@ -46,27 +70,27 @@ export const getEnvConfig = (): AlpacaConfig => {
     paperApiSecret: '',
     liveApiKey: '',
     liveApiSecret: '',
-    isPaper: parseEnvBool(import.meta.env.VITE_ALPACA_IS_PAPER),
+    isPaper: parseEnvBool(envValue('VITE_ALPACA_IS_PAPER')),
     defaults: {
-      extendedHours: parseEnvBool(import.meta.env.VITE_EXTENDED_HOURS),
-      pollingInterval: parseEnvNumber(import.meta.env.VITE_POLLING_INTERVAL),
-      defaultTimeInForce: (import.meta.env.VITE_DEFAULT_TIME_IN_FORCE || 'gtc') as 'gtc' | 'day' | 'ioc',
-      aggressiveMode: parseEnvBool(import.meta.env.VITE_AGGRESSIVE_MODE),
+      extendedHours: parseEnvBool(envValue('VITE_EXTENDED_HOURS')),
+      pollingInterval: parseEnvNumber(envValue('VITE_POLLING_INTERVAL')),
+      defaultTimeInForce: (envValue('VITE_DEFAULT_TIME_IN_FORCE') || 'gtc') as 'gtc' | 'day' | 'ioc',
+      aggressiveMode: parseEnvBool(envValue('VITE_AGGRESSIVE_MODE')),
       mobilePriceSteps: {
-        large: parsePriceStep(import.meta.env.VITE_MOBILE_PRICE_STEP_LARGE, 1.00),
-        mid: parsePriceStep(import.meta.env.VITE_MOBILE_PRICE_STEP_MID, 0.10),
-        small: parsePriceStep(import.meta.env.VITE_MOBILE_PRICE_STEP_SMALL, 0.01),
+        large: parsePriceStep(envValue('VITE_MOBILE_PRICE_STEP_LARGE'), 1.00),
+        mid: parsePriceStep(envValue('VITE_MOBILE_PRICE_STEP_MID'), 0.10),
+        small: parsePriceStep(envValue('VITE_MOBILE_PRICE_STEP_SMALL'), 0.01),
       },
-      stopSlippagePct: parseEnvNumber(import.meta.env.VITE_STOP_SLIPPAGE_PCT) || 0.001,
+      stopSlippagePct: parseEnvNumber(envValue('VITE_STOP_SLIPPAGE_PCT')) || 0.001,
       mobile: {
         tickers,
         presets,
         defaultPreset,
         defaultTier,
-        defaultOsl: parseEnvBool(import.meta.env.VITE_MOBILE_DEFAULT_OSL),
-        width: parseEnvNumber(import.meta.env.VITE_MOBILE_WIDTH) || 390,
-        height: parseEnvNumber(import.meta.env.VITE_MOBILE_HEIGHT) || 844,
-        margin: parseEnvNumber(import.meta.env.VITE_MOBILE_MARGIN) || 12,
+        defaultOsl: parseEnvBool(envValue('VITE_MOBILE_DEFAULT_OSL')),
+        width: parseEnvNumber(envValue('VITE_MOBILE_WIDTH')) || 390,
+        height: parseEnvNumber(envValue('VITE_MOBILE_HEIGHT')) || 844,
+        margin: parseEnvNumber(envValue('VITE_MOBILE_MARGIN')) || 12,
       },
     }
   };
@@ -88,22 +112,22 @@ export const getLLMConfig = () => {
 export const getTradingConfig = () => {
   return {
     strategy: 'scalper' as const,
-    defaultSymbol: import.meta.env.VITE_DEFAULT_SYMBOL || 'INTC',
-    defaultQty: parseEnvNumber(import.meta.env.VITE_DEFAULT_QTY),
-    trailingStopDefaultPct: parseEnvNumber(import.meta.env.VITE_TRAILING_STOP_DEFAULT_PCT),
-    trailingStopMinPct: parseEnvNumber(import.meta.env.VITE_TRAILING_STOP_MIN_PCT),
-    autoStopLossPct: parseEnvNumber(import.meta.env.VITE_AUTO_STOP_LOSS_PCT),
-    autoTakeProfitPct: parseEnvNumber(import.meta.env.VITE_AUTO_TAKE_PROFIT_PCT),
-    beStopOffsetPct: parseEnvNumber(import.meta.env.VITE_BE_STOP_OFFSET),
-    slStopOffsetPct: parseEnvNumber(import.meta.env.VITE_SL_STOP_OFFSET),
-    maxPositionSizePercent: parseEnvNumber(import.meta.env.VITE_MAX_POSITION_SIZE_PERCENT),
-    layer1Enabled: parseEnvBool(import.meta.env.VITE_LAYER1_ENABLED),
-    layer2Enabled: parseEnvBool(import.meta.env.VITE_LAYER2_ENABLED),
-    layer3Enabled: parseEnvBool(import.meta.env.VITE_LAYER3_ENABLED),
-    layer2TrailPct: parseEnvNumber(import.meta.env.VITE_LAYER2_TRAIL_PCT),
-    layer3TrailPct: parseEnvNumber(import.meta.env.VITE_LAYER3_TRAIL_PCT),
-    ladderPriceStep: parseEnvNumber(import.meta.env.VITE_LADDER_PRICE_STEP) || 0.10,
-    ladderOrderCount: parseEnvNumber(import.meta.env.VITE_LADDER_ORDER_COUNT) || 3,
+    defaultSymbol: envValue('VITE_DEFAULT_SYMBOL') || 'INTC',
+    defaultQty: parseEnvNumber(envValue('VITE_DEFAULT_QTY')),
+    trailingStopDefaultPct: parseEnvNumber(envValue('VITE_TRAILING_STOP_DEFAULT_PCT')),
+    trailingStopMinPct: parseEnvNumber(envValue('VITE_TRAILING_STOP_MIN_PCT')),
+    autoStopLossPct: parseEnvNumber(envValue('VITE_AUTO_STOP_LOSS_PCT')),
+    autoTakeProfitPct: parseEnvNumber(envValue('VITE_AUTO_TAKE_PROFIT_PCT')),
+    beStopOffsetPct: parseEnvNumber(envValue('VITE_BE_STOP_OFFSET')),
+    slStopOffsetPct: parseEnvNumber(envValue('VITE_SL_STOP_OFFSET')),
+    maxPositionSizePercent: parseEnvNumber(envValue('VITE_MAX_POSITION_SIZE_PERCENT')),
+    layer1Enabled: parseEnvBool(envValue('VITE_LAYER1_ENABLED')),
+    layer2Enabled: parseEnvBool(envValue('VITE_LAYER2_ENABLED')),
+    layer3Enabled: parseEnvBool(envValue('VITE_LAYER3_ENABLED')),
+    layer2TrailPct: parseEnvNumber(envValue('VITE_LAYER2_TRAIL_PCT')),
+    layer3TrailPct: parseEnvNumber(envValue('VITE_LAYER3_TRAIL_PCT')),
+    ladderPriceStep: parseEnvNumber(envValue('VITE_LADDER_PRICE_STEP')) || 0.10,
+    ladderOrderCount: parseEnvNumber(envValue('VITE_LADDER_ORDER_COUNT')) || 3,
   };
 };
 
@@ -111,11 +135,13 @@ export const getFeeConfig = () => {
   return {
     COMMISSION: 0,
     STOCKS: {
-      REGULATORY_ONE_WAY: parseEnvNumber(import.meta.env.VITE_ALPACA_STOCKS_FEE),
+      REGULATORY_ONE_WAY: parseEnvNumber(envValue('VITE_ALPACA_STOCKS_FEE')),
     },
     TIER_1: {
-      TAKER: parseEnvNumber(import.meta.env.VITE_ALPACA_CRYPTO_TAKER_FEE),
-      MAKER: parseEnvNumber(import.meta.env.VITE_ALPACA_CRYPTO_MAKER_FEE),
+      TAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_TAKER_FEE')),
+      MAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_MAKER_FEE')),
     },
   };
 };
+
+export { envVersion };
