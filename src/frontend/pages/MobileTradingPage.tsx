@@ -1150,7 +1150,10 @@ return (
          tickDirection={tickDirections[activeSymbol] ?? null}
          priceSteps={env.defaults?.mobilePriceSteps}
          onPriceRefresh={handlePriceRefresh}
-         onSlTpClick={() => handleSlTp(positionSide === 'long' ? 'buy' : 'sell')}
+         slActive={slActive}
+         tpActive={tpActive}
+         onToggleSl={() => setSlActive(v => !v)}
+         onToggleTp={() => setTpActive(v => !v)}
        />
 
       {/* Presets */}

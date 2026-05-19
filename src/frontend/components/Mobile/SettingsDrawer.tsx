@@ -35,20 +35,20 @@ export function SettingsDrawer({ open, onClose }: Props) {
         className="flex-1 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="bg-[#0B1120] border-t border-gray-700/50 rounded-t-2xl max-h-[85vh] flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
+      <div className="bg-trade-dark border-t border-trade-border rounded-t-2xl max-h-[85vh] flex flex-col">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-trade-border">
           <h2 className="text-white font-bold text-lg">Settings</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { if (confirm('Reset all overrides?')) reset(); }}
-              className="text-[#8B99AE] text-xs font-bold px-3 py-1 rounded-full border border-gray-700/50"
+              className="text-trade-text-dim text-xs font-bold px-3 py-1 rounded-full border border-trade-border"
             >
               Reset all
             </button>
             <button
               aria-label="Close"
               onClick={onClose}
-              className="text-[#8B99AE] hover:text-white text-2xl leading-none px-2"
+              className="text-trade-text-dim hover:text-white text-2xl leading-none px-2"
             >×</button>
           </div>
         </header>
@@ -56,7 +56,7 @@ export function SettingsDrawer({ open, onClose }: Props) {
         <div className="overflow-y-auto px-4 py-3 flex-1">
           {groups.map(([group, items]) => (
             <section key={group} className="mb-5">
-              <h3 className="text-[#8B99AE] text-xs font-bold uppercase tracking-wider mb-2">{group}</h3>
+              <h3 className="text-trade-text-dim text-xs font-bold uppercase tracking-wider mb-2">{group}</h3>
               <div className="flex flex-col gap-2">
                 {items.map(def => (
                   <SettingRow

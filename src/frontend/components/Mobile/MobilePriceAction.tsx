@@ -17,7 +17,10 @@ interface MobilePriceActionProps {
   tickDirection?: 'up' | 'down' | null;
   priceSteps?: { large: number; mid: number; small: number };
   onPriceRefresh?: (activeTier: 'M' | 'L' | 'S') => void;
-  onSlTpClick?: () => void;
+  slActive: boolean;
+  tpActive: boolean;
+  onToggleSl: () => void;
+  onToggleTp: () => void;
 }
 
 export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
@@ -37,7 +40,10 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
   tickDirection: _tickDirection,
   priceSteps = { large: 1, mid: 0.1, small: 0.01 },
   onPriceRefresh,
-  onSlTpClick,
+  slActive,
+  tpActive,
+  onToggleSl,
+  onToggleTp,
 }) => {
   const displayPrice = activeTier === 'M' ? price : (limitPrice ?? price);
   const formattedPrice = displayPrice !== null ? displayPrice.toFixed(2) : '--';
@@ -129,9 +135,16 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
         {/* Top Button (TP for LONG, SL for SHORT) */}
         <button
           type="button"
-          onClick={onSlTpClick}
-          disabled={!canTrade || isSubmitting}
-          className="h-10 rounded-xl border font-bold text-xs bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20 transition-colors"
+          onClick={positionSide === 'long' ? onToggleTp : onToggleSl}
+          className={`h-10 rounded-xl border font-bold text-xs transition-colors ${
+            positionSide === 'long'
+              ? tpActive
+                ? 'bg-[#25D366]/20 border-[#25D366] text-[#25D366]'
+                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20'
+              : slActive
+                ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-[#FF4B4B]'
+                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#FF4B4B]/20'
+          }`}
         >
           {positionSide === 'long' ? 'TP' : 'SL'}
         </button>
@@ -157,9 +170,16 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
         {/* Bottom Button (SL for LONG, TP for SHORT) */}
         <button
           type="button"
-          onClick={onSlTpClick}
-          disabled={!canTrade || isSubmitting}
-          className="h-10 rounded-xl border font-bold text-xs bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20 transition-colors"
+          onClick={positionSide === 'long' ? onToggleSl : onToggleTp}
+          className={`h-10 rounded-xl border font-bold text-xs transition-colors ${
+            positionSide === 'long'
+              ? slActive
+                ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-[#FF4B4B]'
+                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#FF4B4B]/20'
+              : tpActive
+                ? 'bg-[#25D366]/20 border-[#25D366] text-[#25D366]'
+                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20'
+          }`}
         >
           {positionSide === 'long' ? 'SL' : 'TP'}
         </button>
