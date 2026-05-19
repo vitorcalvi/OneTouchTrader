@@ -71,12 +71,20 @@ import {
   handleScanPresets,
   isHealthRoute,
 } from "./routes/index.js";
+import {
+  handlePostTradeCard,
+  handleGetTradeCards,
+  handleFireTradeCard,
+  handleCancelTradeCard,
+} from "./routes/trade-cards.mjs";
 
 // Import WebSocket proxy
 import { handleWebSocketUpgrade, closeAllConnections as closeAllWsConnections } from "./websocket-proxy.mjs";
 
 loadEnv();
 validateEnv({ checkAlpaca: true, silent: false });
+
+const TRADE_CARD_TOKEN = process.env.VITE_TRADE_CARD_TOKEN || "dev-token";
 
 const logger = createLogger("AlpacaServer");
 const PORT = 5171;
@@ -1170,6 +1178,45 @@ const server = http.createServer(async (req, res) => {
           }),
         );
       }
+      return;
+    }
+
+    if (pathname === "/api/trade-cards" && req.method === "POST") {
+      const body = await readBody(req);
+      const result = await handlePostTradeCard(body, TRADE_CARD_TOKEN, req);
+      res.writeHead(result.status, corsHeaders);
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+    if (pathname === "/api/trade-cards" && req.method === "GET") {
+      const result = await handleGetTradeCards(searchParams);
+      res.writeHead(result.status, corsHeaders);
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+    const fireMatch = pathname.match(/^\/api\/trade-cards\/([^/]+)\/fire$/);
+    if (fireMatch && req.method === "POST") {
+      const id = fireMatch[1];
+      const fireOrderFn = async (orderBody) => {
+        const url = `http://localhost:5171/api/alpaca/orders?live=false`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(orderBody),
+        });
+        if (!r.ok) throw new Error(`alpaca order failed: ${r.status} ${await r.text()}`);
+        return r.json();
+      };
+      const result = await handleFireTradeCard(id, fireOrderFn);
+      res.writeHead(result.status, corsHeaders);
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+    const cancelMatch = pathname.match(/^\/api\/trade-cards\/([^/]+)\/cancel$/);
+    if (cancelMatch && req.method === "POST") {
+      const result = await handleCancelTradeCard(cancelMatch[1]);
+      res.writeHead(result.status, corsHeaders);
+      res.end(JSON.stringify(result.body));
       return;
     }
 

@@ -4,3 +4,4 @@ export { SizePresets } from './SizePresets';
 export { OrderPanel } from './OrderPanel';
 export { PositionCardMobile } from './PositionCardMobile';
 export { AssetGrid } from './AssetGrid';
+export { TradeCardInbox } from './TradeCardInbox';

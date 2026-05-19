@@ -13,6 +13,7 @@ import { MobilePriceAction } from '@/components/Mobile/MobilePriceAction';
 import { GlobalPositionManager } from '@/components/Mobile/GlobalPositionManager';
 import { MobileControlsPanel } from '@/components/Mobile/MobileControlsPanel';
 import { SettingsDrawer } from '@/components/Mobile/SettingsDrawer';
+import { TradeCardInbox } from '@/components/Mobile/TradeCardInbox';
 import { useEnvVersion } from '@/hooks/useEnvVersion';
 import type { Position, Order, Account } from '@/types';
 import { safeParseFloat } from '@/shared/utils/numbers';
@@ -1091,6 +1092,7 @@ export function MobileTradingPage() {
 
 return (
     <div className="w-[390px] h-[844px] bg-[#121826] px-4 pt-6 pb-4 flex flex-col gap-2 relative overflow-hidden shadow-2xl">
+      <TradeCardInbox />
       <StatusBar
         isPaper={isPaper}
         onPaperLiveToggle={handlePaperLiveChange}

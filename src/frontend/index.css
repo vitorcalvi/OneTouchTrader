@@ -126,6 +126,26 @@
     font-family: 'JetBrains Mono', monospace;
     font-feature-settings: 'tnum' on, 'lnum' on;
   }
+  
+  /* Glass card and app button styles */
+  .glass-card {
+    background: #1e2533cc;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .bg-app-button {
+    background-color: #2a3241;
+  }
+
+  .bg-app-buttonHover {
+    background-color: #353f52;
+  }
+
+  .text-app-textMuted {
+    color: #8b96a5;
+  }
 }
 
 @layer base {
