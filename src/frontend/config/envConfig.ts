@@ -152,7 +152,5 @@ export const getFeeConfig = () => {
       TAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_TAKER_FEE')),
       MAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_MAKER_FEE')),
     },
-  };
+  }
 };
-
-export { envVersion };

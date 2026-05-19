@@ -35,20 +35,20 @@ export function SettingsDrawer({ open, onClose }: Props) {
         className="flex-1 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="bg-trade-dark border-t border-trade-border rounded-t-2xl max-h-[85vh] flex flex-col">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-trade-border">
+      <div className="bg-[#0B1120] border-t border-gray-700/50 rounded-t-2xl max-h-[85vh] flex flex-col">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
           <h2 className="text-white font-bold text-lg">Settings</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { if (confirm('Reset all overrides?')) reset(); }}
-              className="text-trade-text-dim text-xs font-bold px-3 py-1 rounded-full border border-trade-border"
+              className="text-[#8B99AE] text-xs font-bold px-3 py-1 rounded-full border border-gray-700/50"
             >
               Reset all
             </button>
             <button
               aria-label="Close"
               onClick={onClose}
-              className="text-trade-text-dim hover:text-white text-2xl leading-none px-2"
+              className="text-[#8B99AE] hover:text-white text-2xl leading-none px-2"
             >×</button>
           </div>
         </header>
@@ -56,7 +56,7 @@ export function SettingsDrawer({ open, onClose }: Props) {
         <div className="overflow-y-auto px-4 py-3 flex-1">
           {groups.map(([group, items]) => (
             <section key={group} className="mb-5">
-              <h3 className="text-trade-text-dim text-xs font-bold uppercase tracking-wider mb-2">{group}</h3>
+              <h3 className="text-[#8B99AE] text-xs font-bold uppercase tracking-wider mb-2">{group}</h3>
               <div className="flex flex-col gap-2">
                 {items.map(def => (
                   <SettingRow
@@ -70,7 +70,7 @@ export function SettingsDrawer({ open, onClose }: Props) {
               </div>
             </section>
           ))}
-          <p className="text-trade-text-dim text-[10px] py-3">
+          <p className="text-[#8B99AE] text-[10px] py-3">
             Defaults loaded from .env (build time). Your overrides are stored in this browser only.
           </p>
         </div>
@@ -91,20 +91,20 @@ function SettingRow({
   const isOverridden = override != null && override !== '';
 
   return (
-    <div className="bg-trade-surface border border-trade-border rounded-xl p-3">
+    <div className="bg-[#1A2234] border border-gray-700/50 rounded-xl p-3">
       <div className="flex items-baseline justify-between mb-1">
         <label className="text-white text-sm font-semibold">{def.label}</label>
-        <span className="text-trade-text-dim text-[10px] font-mono">
+        <span className="text-[#8B99AE] text-[10px] font-mono">
           {defaultValue ?? '∅'} <span className="opacity-50">(.env)</span>
         </span>
       </div>
-      {def.help && <p className="text-trade-text-dim text-[11px] mb-2">{def.help}</p>}
+      {def.help && <p className="text-[#8B99AE] text-[11px] mb-2">{def.help}</p>}
       <div className="flex items-center gap-2">
         <Editor def={def} value={current} onChange={onChange} />
         {isOverridden && (
           <button
             onClick={() => onChange(null)}
-            className="text-trade-text-dim text-[10px] font-bold px-2 py-1 rounded border border-trade-border"
+            className="text-[#8B99AE] text-[10px] font-bold px-2 py-1 rounded border border-gray-700/50"
           >
             Reset
           </button>
@@ -124,7 +124,7 @@ function Editor({
         <button
           onClick={() => onChange(on ? 'false' : 'true')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-            on ? 'bg-trade-green text-black' : 'bg-trade-surface border border-trade-border text-trade-text-dim'
+            on ? 'bg-[#25D366] text-black' : 'bg-[#1A2234] border border-gray-700/50 text-[#8B99AE]'
           }`}
         >{on ? 'ON' : 'OFF'}</button>
       );
@@ -137,7 +137,7 @@ function Editor({
               key={opt}
               onClick={() => onChange(opt)}
               className={`px-3 py-1 rounded-full text-[11px] font-bold ${
-                value === opt ? 'bg-trade-green text-black' : 'border border-trade-border text-trade-text-dim'
+                value === opt ? 'bg-[#25D366] text-black' : 'border border-gray-700/50 text-[#8B99AE]'
               }`}
             >{opt}</button>
           ))}
@@ -152,7 +152,7 @@ function Editor({
           min={def.min}
           max={def.max}
           onChange={e => onChange(e.target.value)}
-          className="flex-1 bg-trade-dark border border-trade-border rounded px-2 py-1 text-white text-sm font-mono"
+          className="flex-1 bg-[#0B1120] border border-gray-700/50 rounded px-2 py-1 text-white text-sm font-mono"
         />
       );
     case 'csv':
@@ -163,7 +163,7 @@ function Editor({
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="flex-1 bg-trade-dark border border-trade-border rounded px-2 py-1 text-white text-sm font-mono"
+          className="flex-1 bg-[#0B1120] border border-gray-700/50 rounded px-2 py-1 text-white text-sm font-mono"
         />
       );
   }

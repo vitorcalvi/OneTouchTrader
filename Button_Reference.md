@@ -47,12 +47,12 @@ The canonical field is the `MobileOrderType` union (`'market' | 'limit' | 'stop_
 | -.01 | `VITE_MOBILE_PRICE_STEP_SMALL` (0.01) | Decrease working price by 0.01 |
 | LONG | — | Toggle position side to LONG |
 | SHORT | — | Toggle position side to SHORT |
-| TP | — | Has two roles: (a) Toggle `tpActive` state for next GO order's bracket legs (page.tsx:149-150, 762-764). (b) When clicked, fires `handleSlTp()` immediately via `onSlTpClick` (page.tsx:1142). |
-| SL | — | Has two roles: (a) Toggle `slActive` state for next GO order's bracket legs (page.tsx:149-150, 762-764). (b) When clicked, fires `handleSlTp()` immediately via `onSlTpClick` (page.tsx:1142). |
-| GO LONG | — | Buy with current preset. If both SL and TP are active, submits bracket order with both legs attached. |
-| GO SHORT | — | Sell with current preset. If both SL and TP are active, submits bracket order with both legs attached. |
+| TP | — | **Toggle only.** Flips `tpActive`. When ON, the next GO order attaches a take-profit leg at `VITE_AUTO_TAKE_PROFIT_PCT` from entry. Does not submit an order. |
+| SL | — | **Toggle only.** Flips `slActive`. When ON, the next GO order attaches a stop-loss leg at `VITE_AUTO_STOP_LOSS_PCT` from entry. Does not submit an order. |
+| GO LONG | — | Buy with current preset. Order class depends on toggles: SL only → OTO with stop-loss; TP only → OTO with take-profit; SL + TP → full bracket; neither → plain entry. |
+| GO SHORT | — | Sell with current preset. Same toggle logic as GO LONG. |
 
-> ⚠ Code/mockup mismatch: The mockup implies TP/SL are toggle-only, but the implementation also fires a one-click bracket order on click. The fix decision (consolidate to one role) is out of scope for this doc — just recording reality.
+> TP/SL are pure modifiers for the next GO order. Submission happens only via GO LONG / GO SHORT.
 
 ## Strategy Selectors
 
