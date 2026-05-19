@@ -25,6 +25,8 @@ const parseEnvList = (val: string | undefined, fallback: string[]): string[] => 
 
 // Overlay helpers for settings from localStorage
 let envVersion = 0;
+const subscribers = new Set<() => void>();
+
 function readOverrides(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   try {
@@ -40,11 +42,20 @@ function envValue(key: string): string | undefined {
   return (import.meta.env as Record<string, string | undefined>)[key];
 }
 
-// Subscribe to settings changes to invalidate memoization
 if (typeof window !== 'undefined') {
   window.addEventListener('lean:settings-changed', () => {
     envVersion++;
+    subscribers.forEach(fn => fn());
   });
+}
+
+export function getEnvVersion(): number {
+  return envVersion;
+}
+
+export function subscribeEnvChanges(fn: () => void): () => void {
+  subscribers.add(fn);
+  return () => subscribers.delete(fn);
 }
 
 export const isAuthEnabled = (): boolean => {

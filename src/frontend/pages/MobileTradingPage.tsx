@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AlpacaService } from '@/services/stocks';
 import { getEnvConfig } from '@/config/envConfig';
 import { getTradingConfig } from '@/config/envConfig';
@@ -13,6 +13,7 @@ import { MobilePriceAction } from '@/components/Mobile/MobilePriceAction';
 import { GlobalPositionManager } from '@/components/Mobile/GlobalPositionManager';
 import { MobileControlsPanel } from '@/components/Mobile/MobileControlsPanel';
 import { SettingsDrawer } from '@/components/Mobile/SettingsDrawer';
+import { useEnvVersion } from '@/hooks/useEnvVersion';
 import type { Position, Order, Account } from '@/types';
 import { safeParseFloat } from '@/shared/utils/numbers';
 import { cancelExistingExitOrders } from '@/utils/stocks/cancelExistingExitOrders';
@@ -125,8 +126,10 @@ function getMobileTimeInForce(
 }
 
 export function MobileTradingPage() {
-  const env = getEnvConfig();
-  const tradingCfg = getTradingConfig();
+  const envVersion = useEnvVersion();
+
+  const env = useMemo(() => getEnvConfig(), [envVersion]);
+  const tradingCfg = useMemo(() => getTradingConfig(), [envVersion]);
   const mobileCfg = env.defaults?.mobile;
 
   const [config, setConfig] = useState(() => env);
@@ -136,6 +139,12 @@ export function MobileTradingPage() {
   const [paperAvailable, setPaperAvailable] = useState(true);
   const [liveAvailable, setLiveAvailable] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Re-instantiate AlpacaService when settings change (debounced 250ms)
+  useEffect(() => {
+    const t = setTimeout(() => setService(new AlpacaService(getEnvConfig())), 250);
+    return () => clearTimeout(t);
+  }, [envVersion]);
 
   const [activeSymbol, setActiveSymbol] = useState(
     tradingCfg.defaultSymbol || (mobileCfg?.tickers[0] ?? 'INTC')
@@ -217,19 +226,6 @@ export function MobileTradingPage() {
     serviceSwitchIdRef.current += 1;
     setService(new AlpacaService(config));
   }, [config]);
-
-  // Re-instantiate AlpacaService when settings change (debounced)
-  useEffect(() => {
-    const handler = () => {
-      const debounceId = setTimeout(() => {
-        serviceSwitchIdRef.current += 1;
-        setService(new AlpacaService(getEnvConfig()));
-      }, 250);
-      return () => clearTimeout(debounceId);
-    };
-    window.addEventListener('lean:settings-changed', handler);
-    return () => window.removeEventListener('lean:settings-changed', handler);
-  }, []);
 
   const handlePaperLiveChange = useCallback((newIsPaper: boolean) => {
     setIsPaper(newIsPaper);

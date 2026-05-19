@@ -42,7 +42,7 @@ export function StatusBar({ isPaper, onPaperLiveToggle, account, paperAvailable 
         <div className="text-right">
           <div className="text-[#4A90E2] text-[10px] font-bold tracking-wider mb-0.5">POWER</div>
           <div className="text-[#25D366] text-lg font-bold [text-shadow:0_0_10px_rgba(37,211,102,0.3)]">
-            ${account ? Math.round(parseFloat(account.equity)).toLocaleString() : '—'}
+            ${account ? Math.round(parseFloat(account.buying_power)).toLocaleString() : '—'}
           </div>
         </div>
         {onOpenSettings && (
