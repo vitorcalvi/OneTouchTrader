@@ -77,6 +77,7 @@ import {
   handleFireTradeCard,
   handleCancelTradeCard,
 } from "./routes/trade-cards.mjs";
+import { handleHealthz } from "./routes/healthz.mjs";
 
 // Import WebSocket proxy
 import { handleWebSocketUpgrade, closeAllConnections as closeAllWsConnections } from "./websocket-proxy.mjs";
@@ -1217,6 +1218,12 @@ const server = http.createServer(async (req, res) => {
       const result = await handleCancelTradeCard(cancelMatch[1]);
       res.writeHead(result.status, corsHeaders);
       res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    // healthz route (bare path, for UptimeRobot)
+    if (pathname === "/healthz" && req.method === "GET") {
+      handleHealthz(req, res);
       return;
     }
 
