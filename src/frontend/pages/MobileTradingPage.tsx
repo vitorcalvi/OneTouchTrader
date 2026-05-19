@@ -1130,8 +1130,6 @@ return (
          positionSide={positionSide}
          onSideToggle={() => {
            setPositionSide(prev => prev === 'long' ? 'short' : 'long');
-           setSlActive(false);
-           setTpActive(false);
          }}
          onPriceStep={handlePriceStep}
          onBuy={handleBuyWithPreset}
@@ -1141,6 +1139,7 @@ return (
          tickDirection={tickDirections[activeSymbol] ?? null}
          priceSteps={env.defaults?.mobilePriceSteps}
          onPriceRefresh={handlePriceRefresh}
+         onSlTpClick={() => handleSlTp(positionSide === 'long' ? 'buy' : 'sell')}
        />
 
       {/* Presets */}

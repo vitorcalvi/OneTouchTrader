@@ -17,6 +17,7 @@ interface MobilePriceActionProps {
   tickDirection?: 'up' | 'down' | null;
   priceSteps?: { large: number; mid: number; small: number };
   onPriceRefresh?: (activeTier: 'M' | 'L' | 'S') => void;
+  onSlTpClick?: () => void;
 }
 
 export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
@@ -36,6 +37,7 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
   tickDirection: _tickDirection,
   priceSteps = { large: 1, mid: 0.1, small: 0.01 },
   onPriceRefresh,
+  onSlTpClick,
 }) => {
   const displayPrice = activeTier === 'M' ? price : (limitPrice ?? price);
   const formattedPrice = displayPrice !== null ? displayPrice.toFixed(2) : '--';
@@ -96,7 +98,6 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
 
       {/* Right: Action Panel */}
       <div className="w-[140px] flex flex-col gap-2">
-        {/* Badges */}
         {/* Long/Short Toggle */}
         <div className="flex bg-[#1A2234] rounded-full border border-gray-700/50 p-1 w-full">
           <button
@@ -125,6 +126,16 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
           </button>
         </div>
 
+        {/* Top Button (TP for LONG, SL for SHORT) */}
+        <button
+          type="button"
+          onClick={onSlTpClick}
+          disabled={!canTrade || isSubmitting}
+          className="h-10 rounded-xl border font-bold text-xs bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20 transition-colors"
+        >
+          {positionSide === 'long' ? 'TP' : 'SL'}
+        </button>
+
         {/* GO Button */}
         <button
           type="button"
@@ -141,6 +152,16 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
           <span className="text-white text-xl font-bold leading-tight drop-shadow-md">
             {positionSide === 'long' ? 'LONG' : 'SHORT'}
           </span>
+        </button>
+
+        {/* Bottom Button (SL for LONG, TP for SHORT) */}
+        <button
+          type="button"
+          onClick={onSlTpClick}
+          disabled={!canTrade || isSubmitting}
+          className="h-10 rounded-xl border font-bold text-xs bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20 transition-colors"
+        >
+          {positionSide === 'long' ? 'SL' : 'TP'}
         </button>
       </div>
     </section>
