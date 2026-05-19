@@ -48,17 +48,19 @@ The canonical field is the `MobileOrderType` union (`'market' | 'limit' | 'stop_
 | -.01 | `VITE_MOBILE_PRICE_STEP_SMALL` (0.01) | Decrease working price by 0.01 |
 | LONG | — | Toggle position side to LONG |
 | SHORT | — | Toggle position side to SHORT |
-| TP | — | Toggle take-profit leg for the next GO order. State stored in `tpActive`. Does not submit on its own. When active, displays green fill. |
-| SL | — | Toggle stop-loss leg for the next GO order. State stored in `slActive`. Does not submit on its own. When active, displays green fill. |
+| TP | — | Has two roles: (a) Toggle `tpActive` state for next GO order's bracket legs (page.tsx:149-150, 762-764). (b) When clicked, fires `handleSlTp()` immediately via `onSlTpClick` (page.tsx:1142). |
+| SL | — | Has two roles: (a) Toggle `slActive` state for next GO order's bracket legs (page.tsx:149-150, 762-764). (b) When clicked, fires `handleSlTp()` immediately via `onSlTpClick` (page.tsx:1142). |
 | GO LONG | — | Buy with current preset. If both SL and TP are active, submits bracket order with both legs attached. |
 | GO SHORT | — | Sell with current preset. If both SL and TP are active, submits bracket order with both legs attached. |
+
+> ⚠ Code/mockup mismatch: The mockup implies TP/SL are toggle-only, but the implementation also fires a one-click bracket order on click. The fix decision (consolidate to one role) is out of scope for this doc — just recording reality.
 
 ## Strategy Selectors
 
 | Button | Action |
 |--------|--------|
 | O-SL: OTO (one-triggers-other) bracket | Market/limit entry + attached stop-loss only. No take-profit leg. Uses `VITE_AUTO_STOP_LOSS_PCT` for SL distance. |
-| LADDER | Submits `VITE_LADDER_ORDER_COUNT` (default 3) laddered limit orders, each spaced by `VITE_LADDER_PRICE_STEP` (default 0.10) from the working price. |
+| LADDER | Submits `VITE_LADDER_ORDER_COUNT` (default 3) laddered limit orders, each spaced by `VITE_LADDER_PRICE_STEP` (default 0.10) from the working price. Long-press cancels all orders for that symbol. |
 | L&F (Live & Forget) | Single entry, then layered trailing stops L1/L2/L3 (enabled via `VITE_LAYER{1,2,3}_ENABLED`, trail % via `VITE_LAYER2_TRAIL_PCT` and `VITE_LAYER3_TRAIL_PCT`). |
 | SL-TP | Full bracket: entry + stop-loss + take-profit. Uses `VITE_AUTO_STOP_LOSS_PCT` and `VITE_AUTO_TAKE_PROFIT_PCT` for SL/TP distances. |
 
@@ -93,9 +95,13 @@ Acts on the position for the active symbol only.
 
 ## Long-Press Gestures
 
-The following elements support long-press (500ms hold):
-- **Ticker symbols** in MobileTickerSelect: Long-press removes symbol from watchlist
-- **Preset buttons** (O-SL, LADDER, L&F, SL-TP): Long-press toggles the preset off
+Implemented via `useLongPress` hook in `GlobalPositionManager.tsx:17`. Long-press duration is 500ms.
+
+| Element | Long-Press Action |
+|---------|------------------|
+| Ticker symbols (MobileTickerSelect) | Removes symbol from watchlist |
+| LADDER strategy button | Cancels all open orders for the active symbol |
+| Other preset buttons (O-SL, L&F, SL-TP) | Toggles the preset off |
 
 ## Open Questions for Vitor
 
