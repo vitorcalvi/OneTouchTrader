@@ -63,7 +63,7 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
               key={idx}
               onClick={() => onPriceStep?.(item.value)}
               disabled={activeTier === 'M'}
-              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-[#8B99AE]"
+              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-white"
             >
               <span className="text-[10px] leading-none mb-1">+</span>
               <span className="text-sm font-bold leading-none">{item.label}</span>
@@ -74,12 +74,12 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
         {/* Price Display */}
         <div className="flex flex-col items-center justify-center py-2">
           <div
-            className={`text-4xl font-bold tracking-tight ${activeTier === 'L' ? 'cursor-pointer select-none' : ''}`}
+            className={`text-white text-4xl font-bold tracking-tight ${activeTier === 'L' ? 'cursor-pointer select-none' : ''}`}
             onClick={activeTier === 'L' ? () => onPriceRefresh?.(activeTier) : undefined}
           >
             {formattedPrice}
           </div>
-          <div className="text-[#8B99AE] text-[10px] font-bold tracking-widest mt-1">STOP</div>
+          <div className="text-white text-[10px] font-bold tracking-widest mt-1">STOP</div>
         </div>
 
         {/* Down Adjustments */}
@@ -93,7 +93,7 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
               key={idx}
               onClick={() => onPriceStep?.(-item.value)}
               disabled={activeTier === 'M'}
-              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-[#8B99AE]"
+              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-white"
             >
               <span className="text-[10px] leading-none mb-1">-</span>
               <span className="text-sm font-bold leading-none">{item.label}</span>
@@ -113,7 +113,7 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
             className={`flex-1 text-[10px] font-bold tracking-wider py-2 rounded-full ${
               positionSide === 'long'
                 ? 'bg-[#25D366] text-[#0A101C] shadow-[0_0_10px_rgba(37,211,102,0.3)]'
-                : 'text-[#8B99AE]'
+                : 'text-white'
             }`}
           >
             LONG
@@ -125,64 +125,69 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
             className={`flex-1 text-[10px] font-bold tracking-wider py-2 rounded-full ${
               positionSide === 'short'
                 ? 'bg-[#FF4B4B] text-white'
-                : 'text-[#8B99AE]'
+                : 'text-white'
             }`}
           >
             SHORT
           </button>
         </div>
 
-        {/* Top Button (TP for LONG, SL for SHORT) */}
-        <button
-          type="button"
-          onClick={positionSide === 'long' ? onToggleTp : onToggleSl}
-          className={`h-10 rounded-xl border font-bold text-xs transition-colors ${
-            positionSide === 'long'
-              ? tpActive
-                ? 'bg-[#25D366]/20 border-[#25D366] text-[#25D366]'
-                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20'
-              : slActive
-                ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-[#FF4B4B]'
-                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#FF4B4B]/20'
-          }`}
-        >
-          {positionSide === 'long' ? 'TP' : 'SL'}
-        </button>
+        {/* GO Button with inline SL/TP buttons */}
+        <div className="flex gap-2 flex-1">
+          {/* Secondary Actions Column */}
+          <div className="flex flex-col space-y-2 w-12">
+            {/* Top button: TP for LONG, SL for SHORT */}
+            <button
+              type="button"
+              onClick={positionSide === 'long' ? onToggleTp : onToggleSl}
+              className={`flex-1 rounded-xl border font-bold text-sm transition-colors ${
+                positionSide === 'long'
+                  ? tpActive
+                    ? 'bg-[#25D366]/20 border-[#25D366] text-white'
+                    : 'bg-[#1A2234] text-white border-gray-700/50 hover:bg-[#25D366]/20'
+                  : slActive
+                    ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-white'
+                    : 'bg-[#1A2234] text-white border-gray-700/50 hover:bg-[#FF4B4B]/20'
+              }`}
+            >
+              {positionSide === 'long' ? 'TP' : 'SL'}
+            </button>
+            {/* Bottom button: SL for LONG, TP for SHORT */}
+            <button
+              type="button"
+              onClick={positionSide === 'long' ? onToggleSl : onToggleTp}
+              className={`flex-1 rounded-xl border font-bold text-sm transition-colors ${
+                positionSide === 'long'
+                  ? slActive
+                    ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-white'
+                    : 'bg-[#1A2234] text-white border-gray-700/50 hover:bg-[#FF4B4B]/20'
+                  : tpActive
+                    ? 'bg-[#25D366]/20 border-[#25D366] text-white'
+                    : 'bg-[#1A2234] text-white border-gray-700/50 hover:bg-[#25D366]/20'
+              }`}
+            >
+              {positionSide === 'long' ? 'SL' : 'TP'}
+            </button>
+          </div>
 
-        {/* GO Button */}
-        <button
-          type="button"
-          onClick={() => (positionSide === 'long' ? onBuy() : onSell())}
-          disabled={!canTrade || isSubmitting}
-          className={`flex-1 rounded-2xl flex flex-col items-center justify-center shadow-[0_0_30px_rgba(37,211,102,0.3)] border border-[#25D366]/50 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed ${
-            positionSide === 'long'
-              ? 'bg-[#25D366] hover:bg-[#20b858]'
-              : 'bg-[#FF4B4B]'
-          }`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
-          <span className="text-white text-xl font-bold leading-tight drop-shadow-md">GO</span>
-          <span className="text-white text-xl font-bold leading-tight drop-shadow-md">
-            {positionSide === 'long' ? 'LONG' : 'SHORT'}
-          </span>
-        </button>
-
-        {/* Bottom Button (SL for LONG, TP for SHORT) */}
-        <button
-          type="button"
-          onClick={positionSide === 'long' ? onToggleSl : onToggleTp}
-          className={`h-10 rounded-xl border font-bold text-xs transition-colors ${
-            positionSide === 'long'
-              ? slActive
-                ? 'bg-[#FF4B4B]/20 border-[#FF4B4B] text-[#FF4B4B]'
-                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#FF4B4B]/20'
-              : tpActive
-                ? 'bg-[#25D366]/20 border-[#25D366] text-[#25D366]'
-                : 'bg-[#1A2234] text-[#8B99AE] border-gray-700/50 hover:bg-[#25D366]/20'
-          }`}
-        >
-          {positionSide === 'long' ? 'SL' : 'TP'}
-        </button>
+          {/* GO Button */}
+          <button
+            type="button"
+            onClick={() => (positionSide === 'long' ? onBuy() : onSell())}
+            disabled={!canTrade || isSubmitting}
+            className={`flex-1 rounded-2xl flex flex-col items-center justify-center shadow-[0_0_30px_rgba(37,211,102,0.3)] border border-[#25D366]/50 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed ${
+              positionSide === 'long'
+                ? 'bg-[#25D366] hover:bg-[#20b858]'
+                : 'bg-[#FF4B4B]'
+            }`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+            <span className="text-white text-xl font-bold leading-tight drop-shadow-md">GO</span>
+            <span className="text-white text-xl font-bold leading-tight drop-shadow-md">
+              {positionSide === 'long' ? 'LONG' : 'SHORT'}
+            </span>
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -7,7 +7,7 @@
 | Until Close | Left | Displays market session progress (read-only indicator) |
 | PAPER | Center | Click to switch to paper trading mode. Calls `onPaperLiveToggle(true)`, which re-instantiates AlpacaService with paper keys. Disabled if `paperAvailable` is false. |
 | LIVE | Center | Click to switch to live trading mode. Calls `onPaperLiveToggle(false)`, which re-instantiates AlpacaService with live keys. Disabled if `liveAvailable` is false. |
-| POWER | Right | Displays `account.equity` (live value from Alpaca) |
+| POWER | Right | Displays `account.buying_power` (live value from Alpaca) |
 
 ## Position Sizes (MobileQuickAmount)
 
@@ -52,7 +52,7 @@ The canonical field is the `MobileOrderType` union (`'market' | 'limit' | 'stop_
 | GO LONG | — | Buy with current preset. Order class depends on toggles: SL only → OTO with stop-loss; TP only → OTO with take-profit; SL + TP → full bracket; neither → plain entry. |
 | GO SHORT | — | Sell with current preset. Same toggle logic as GO LONG. |
 
-> TP/SL are pure modifiers for the next GO order. Submission happens only via GO LONG / GO SHORT.
+> **Button order:** TP and SL appear inline to the left of the GO button. For LONG mode: `[TP] [SL] [GO LONG]`. For SHORT mode: `[SL] [TP] [GO SHORT]`. TP/SL are pure modifiers for the next GO order. Submission happens only via GO LONG / GO SHORT.
 
 ## Strategy Selectors
 
