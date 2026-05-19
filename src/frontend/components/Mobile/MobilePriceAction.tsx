@@ -81,7 +81,6 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
           </div>
           <div className="text-white text-[11px] font-bold tracking-widest mt-1">STOP</div>
         </div>
-        </div>
 
         {/* Down Adjustments */}
         <div className="grid grid-cols-3 gap-2">
