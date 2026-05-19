@@ -5,10 +5,9 @@
 | Button | Location | Action |
 |--------|----------|--------|
 | Until Close | Left | Displays market session progress (read-only indicator) |
-| Account Mode | Center | Read-only badge showing PAPER or LIVE status (from `VITE_ALPACA_IS_PAPER`). Single badge, not a 2-button pill. |
-| POWER | Right | Displays `account.buying_power` (live value from Alpaca). The "$36,881" in the mockup is placeholder text only. |
-
-> ⚠ Code/mockup mismatch: The mockup shows a 2-button PAPER/LIVE pill, but the implementation should render as a single read-only badge.
+| PAPER | Center | Click to switch to paper trading mode. Calls `onPaperLiveToggle(true)`, which re-instantiates AlpacaService with paper keys. Disabled if `paperAvailable` is false. |
+| LIVE | Center | Click to switch to live trading mode. Calls `onPaperLiveToggle(false)`, which re-instantiates AlpacaService with live keys. Disabled if `liveAvailable` is false. |
+| POWER | Right | Displays `account.equity` (live value from Alpaca) |
 
 ## Position Sizes (MobileQuickAmount)
 
@@ -106,8 +105,7 @@ Implemented via `useLongPress` hook in `GlobalPositionManager.tsx:17`. Long-pres
 ## Open Questions for Vitor
 
 1. The `+` button in ticker selection uses `window.prompt()` - should this be replaced with a symbol screener modal?
-2. The PAPER/LIVE display in the mockup shows a 2-button pill but the spec calls for a single badge - which is the intended final design?
-3. The NO POSITIONS / N OPEN element in GlobalPositionManager.tsx currently renders as a `<button>` - should it be changed to a `<div>` or disabled button?
+2. The NO POSITIONS / N OPEN element in GlobalPositionManager.tsx currently renders as a `<button>` - should it be changed to a `<div>` or disabled button?
 
 ## Environment Variables Referenced
 
