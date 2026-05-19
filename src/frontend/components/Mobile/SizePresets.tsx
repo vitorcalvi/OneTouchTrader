@@ -15,7 +15,7 @@ export function SizePresets({ presets, activePreset, onSelect }: SizePresetsProp
           className={`flex-1 px-3 py-2 rounded-md text-sm font-bold transition-colors ${
             activePreset === preset
               ? 'bg-green-600 text-white'
-              : 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
+              : 'bg-gray-800 text-white border border-gray-700 hover:bg-gray-700'
           }`}
         >
           {preset}

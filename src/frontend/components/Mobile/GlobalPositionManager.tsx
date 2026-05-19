@@ -57,7 +57,7 @@ export function GlobalPositionManager({
   const trailLP = useLongPress(() => {}, onTrailAll);
 
   const disabled = positions.length === 0 || !!isSubmitting;
-  const colorClass = positions.length > 0 ? 'text-[#4A90E2]' : 'text-[#8B99AE]';
+  const colorClass = positions.length > 0 ? 'text-white' : 'text-white';
 
   const totalPnl = positions.reduce((s, p) => s + safeParseFloat(p.unrealized_pl, 0), 0);
   const totalCost = positions.reduce((s, p) => s + Math.abs(safeParseFloat(p.cost_basis, 0)), 0);
@@ -124,7 +124,7 @@ export function GlobalPositionManager({
         onClick={() => { if (positions.length > 0) onCycleActive(); }}
       >
         {positions.length === 0 ? (
-          <div className="text-[#8B99AE] text-sm font-bold leading-tight">NO POSITIONS</div>
+          <div className="text-white text-sm font-bold leading-tight">NO POSITIONS</div>
         ) : (
           <>
             <div className="flex flex-col">
@@ -132,7 +132,7 @@ export function GlobalPositionManager({
             </div>
             <div className="flex flex-col items-end">
               <div className="flex items-baseline gap-1">
-                <span className="text-[#8B99AE] text-[8px] font-bold">PNL</span>
+                <span className="text-white text-[8px] font-bold">PNL</span>
                 <span className={`text-sm font-bold leading-tight ${totalPnl >= 0 ? 'text-[#25D366]' : 'text-[#FF4B4B]'}`}>
                   {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(2)}
                 </span>

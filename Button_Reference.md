@@ -22,7 +22,7 @@
 
 | Button | Action |
 |--------|--------|
-| Ticker Symbol (e.g., INTC) | Sets active symbol for trading. Long-press removes symbol from watchlist. |
+| Ticker Symbol (e.g., INTC) | Sets active symbol for trading. |
 | + | Opens add-symbol prompt (window.prompt) |
 
 ## Order Type Toggle (MobileSizeToggle)
@@ -47,21 +47,19 @@ The canonical field is the `MobileOrderType` union (`'market' | 'limit' | 'stop_
 | -.01 | `VITE_MOBILE_PRICE_STEP_SMALL` (0.01) | Decrease working price by 0.01 |
 | LONG | — | Toggle position side to LONG |
 | SHORT | — | Toggle position side to SHORT |
-| TP | — | **Toggle only.** Flips `tpActive`. When ON, the next GO order attaches a take-profit leg at `VITE_AUTO_TAKE_PROFIT_PCT` from entry. Does not submit an order. |
-| SL | — | **Toggle only.** Flips `slActive`. When ON, the next GO order attaches a stop-loss leg at `VITE_AUTO_STOP_LOSS_PCT` from entry. Does not submit an order. |
-| GO LONG | — | Buy with current preset. Order class depends on toggles: SL only → OTO with stop-loss; TP only → OTO with take-profit; SL + TP → full bracket; neither → plain entry. |
+| TP | — | Toggle only. Flips `tpActive`. When ON, the next GO order attaches a take-profit leg at `VITE_AUTO_TAKE_PROFIT_PCT` from entry. |
+| SL | — | Toggle only. Flips `slActive`. When ON, the next GO order attaches a stop-loss leg at `VITE_AUTO_STOP_LOSS_PCT` from entry. |
+| GO LONG | — | Buy with current preset. Order class depends on toggles (OTO/Bracket). |
 | GO SHORT | — | Sell with current preset. Same toggle logic as GO LONG. |
-
-> **Button order:** TP and SL appear inline to the left of the GO button. For LONG mode: `[TP] [SL] [GO LONG]`. For SHORT mode: `[SL] [TP] [GO SHORT]`. TP/SL are pure modifiers for the next GO order. Submission happens only via GO LONG / GO SHORT.
 
 ## Strategy Selectors
 
 | Button | Action |
 |--------|--------|
-| O-SL: OTO (one-triggers-other) bracket | Market/limit entry + attached stop-loss only. No take-profit leg. Uses `VITE_AUTO_STOP_LOSS_PCT` for SL distance. |
-| LADDER | Submits `VITE_LADDER_ORDER_COUNT` (default 3) laddered limit orders, each spaced by `VITE_LADDER_PRICE_STEP` (default 0.10) from the working price. Long-press cancels all orders for that symbol. |
-| L&F (Live & Forget) | Single entry, then layered trailing stops L1/L2/L3 (enabled via `VITE_LAYER{1,2,3}_ENABLED`, trail % via `VITE_LAYER2_TRAIL_PCT` and `VITE_LAYER3_TRAIL_PCT`). |
-| SL-TP | Full bracket: entry + stop-loss + take-profit. Uses `VITE_AUTO_STOP_LOSS_PCT` and `VITE_AUTO_TAKE_PROFIT_PCT` for SL/TP distances. |
+| O-SL | Market/limit entry + attached stop-loss only. Uses `VITE_AUTO_STOP_LOSS_PCT` for SL distance. |
+| LADDER | Submits `VITE_LADDER_ORDER_COUNT` (default 3) laddered limit orders, each spaced by `VITE_LADDER_PRICE_STEP` (default 0.10) from the working price. |
+| L&F | Single entry + layered trailing stops L1/L2/L3. |
+| SL-TP | Full bracket: entry + stop-loss + take-profit. Uses `VITE_AUTO_STOP_LOSS_PCT` and `VITE_AUTO_TAKE_PROFIT_PCT`. |
 
 ## Account Status (MobileControlsPanel)
 
@@ -69,43 +67,36 @@ Acts on the position for the active symbol only.
 
 | Button | Action |
 |--------|--------|
-| EXIT | Close the entire position for the active symbol via market order |
-| BE | Move stop to break-even + `VITE_BE_STOP_OFFSET` (currently 0.1) |
-| SL | Re-arm stop-loss at `VITE_SL_STOP_OFFSET` (currently 0.75%) |
-| TRAIL | Toggle trailing stop using `VITE_TRAILING_STOP_DEFAULT_PCT` (currently 1.0%), floored by `VITE_TRAILING_STOP_MIN_PCT` (0.5%) |
+| EXIT | Cleanup existing exit legs via `cancelExistingExitOrders` then close position via market order. |
+| BE | Move stop to break-even + `VITE_BE_STOP_OFFSET` (0.1) |
+| SL | Re-arm stop-loss at `VITE_SL_STOP_OFFSET` (0.75%) |
+| TRAIL | Toggle trailing stop using `VITE_TRAILING_STOP_DEFAULT_PCT` (1.0%), floored by `VITE_TRAILING_STOP_MIN_PCT` (0.5%) |
 
 ## Bottom Navigation (GlobalPositionManager)
 
 | Button | Action |
 |--------|--------|
-| ALL EXIT | Close all positions |
+| ALL EXIT | Executes cleanup (canceling existing exit legs) and closes all positions via market orders. |
 | ALL BE | Set all positions to break-even |
 | ALL SL | Set stop-loss on all positions |
 | ALL TRAIL | Set trailing stop on all positions |
-| NO POSITIONS / N OPEN | Status-only display (not a button). Should render as `<div>` or disabled button despite mockup styling. |
+| Status Indicator | N OPEN/NO POSITIONS: Status-only display. |
 
-> ⚠ Code/mockup mismatch: The mockup styles this as a button but it should be a status-only element in the implementation.
-
-## Settings Nav (Fixed Bottom)
+## Settings Nav
 
 | Button | Action |
 |--------|--------|
-| Settings (gear icon) | Opens SettingsDrawer (stub component) |
+| Settings | Opens SettingsDrawer |
 
 ## Long-Press Gestures
 
-Implemented via `useLongPress` hook in `GlobalPositionManager.tsx:17`. Long-press duration is 500ms.
+Implemented via shared `useLongPress` hook. Duration: 500ms.
 
 | Element | Long-Press Action |
 |---------|------------------|
-| Ticker symbols (MobileTickerSelect) | Removes symbol from watchlist |
-| LADDER strategy button | Cancels all open orders for the active symbol |
-| Other preset buttons (O-SL, L&F, SL-TP) | Toggles the preset off |
-
-## Open Questions for Vitor
-
-1. The `+` button in ticker selection uses `window.prompt()` - should this be replaced with a symbol screener modal?
-2. The NO POSITIONS / N OPEN element in GlobalPositionManager.tsx currently renders as a `<button>` - should it be changed to a `<div>` or disabled button?
+| Ticker symbols | Removes symbol from watchlist |
+| LADDER button | Cancels all open orders for active symbol |
+| Preset buttons (O-SL, L&F, SL-TP) | Toggles preset off |
 
 ## Environment Variables Referenced
 
@@ -123,5 +114,6 @@ Implemented via `useLongPress` hook in `GlobalPositionManager.tsx:17`. Long-pres
 | `VITE_TRAILING_STOP_MIN_PCT` | 0.5 | Minimum trailing stop percentage |
 | `VITE_LADDER_PRICE_STEP` | 0.10 | Ladder order spacing |
 | `VITE_LADDER_ORDER_COUNT` | 3 | Number of ladder orders |
-| `VITE_LAYER2_TRAIL_PCT` | 0.5 | Layer 2 trailing percentage |
-| `VITE_LAYER3_TRAIL_PCT` | 1.5 | Layer 3 trailing percentage |
+| `VITE_ALPACA_STOCKS_FEE` | 0.0001194 | Stock fee calculation |
+| `VITE_ALPACA_CRYPTO_TAKER_FEE` | 0.003 | Crypto taker fee |
+| `VITE_ALPACA_CRYPTO_MAKER_FEE` | -0.002 | Crypto maker fee |

@@ -95,7 +95,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <h2 className="text-lg font-bold text-white mb-2">
               Component Error
             </h2>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className="text-white text-sm mb-4">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             
@@ -109,15 +109,15 @@ export class ErrorBoundary extends Component<Props, State> {
               </button>
               
               <details className="text-left">
-                <summary className="cursor-pointer text-gray-500 text-xs hover:text-gray-400">
+                <summary className="cursor-pointer text-white text-xs hover:text-white">
                   Error Details
                 </summary>
-                <div className="mt-2 p-3 bg-gray-800 rounded border text-xs font-mono text-gray-300 overflow-auto max-h-32">
+                <div className="mt-2 p-3 bg-gray-800 rounded border text-xs font-mono text-white overflow-auto max-h-32">
                   <div className="text-red-400 mb-2">
                     {this.state.error?.name}: {this.state.error?.message}
                   </div>
                   {this.state.errorInfo?.componentStack && (
-                    <div className="text-gray-500">
+                    <div className="text-white">
                       {this.state.errorInfo.componentStack}
                     </div>
                   )}

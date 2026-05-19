@@ -63,23 +63,24 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
               key={idx}
               onClick={() => onPriceStep?.(item.value)}
               disabled={activeTier === 'M'}
-              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-white"
+              className="bg-[#242E42] border border-white/5 rounded-lg py-3 flex flex-col items-center justify-center text-white"
             >
-              <span className="text-[10px] leading-none mb-1">+</span>
-              <span className="text-sm font-bold leading-none">{item.label}</span>
+              <span className="text-xs leading-none mb-1">+</span>
+              <span className="text-base font-bold leading-none">{item.label}</span>
             </button>
           ))}
         </div>
 
         {/* Price Display */}
-        <div className="flex flex-col items-center justify-center py-2">
+        <div className="flex flex-col items-center justify-center py-3">
           <div
             className={`text-white text-4xl font-bold tracking-tight ${activeTier === 'L' ? 'cursor-pointer select-none' : ''}`}
             onClick={activeTier === 'L' ? () => onPriceRefresh?.(activeTier) : undefined}
           >
             {formattedPrice}
           </div>
-          <div className="text-white text-[10px] font-bold tracking-widest mt-1">STOP</div>
+          <div className="text-white text-[11px] font-bold tracking-widest mt-1">STOP</div>
+        </div>
         </div>
 
         {/* Down Adjustments */}
@@ -93,10 +94,10 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
               key={idx}
               onClick={() => onPriceStep?.(-item.value)}
               disabled={activeTier === 'M'}
-              className="bg-[#242E42] border border-white/5 rounded-lg py-2 flex flex-col items-center justify-center text-white"
+              className="bg-[#242E42] border border-white/5 rounded-lg py-3 flex flex-col items-center justify-center text-white"
             >
-              <span className="text-[10px] leading-none mb-1">-</span>
-              <span className="text-sm font-bold leading-none">{item.label}</span>
+              <span className="text-xs leading-none mb-1">-</span>
+              <span className="text-base font-bold leading-none">{item.label}</span>
             </button>
           ))}
         </div>
@@ -110,9 +111,9 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
             type="button"
             onClick={onSideToggle}
             disabled={positionSide === 'long'}
-            className={`flex-1 text-[10px] font-bold tracking-wider py-2 rounded-full ${
+            className={`flex-1 text-xs font-bold tracking-wider py-2 rounded-full ${
               positionSide === 'long'
-                ? 'bg-[#25D366] text-[#0A101C] shadow-[0_0_10px_rgba(37,211,102,0.3)]'
+                ? 'bg-[#25D366] text-white shadow-[0_0_10px_rgba(37,211,102,0.3)]'
                 : 'text-white'
             }`}
           >
@@ -122,7 +123,7 @@ export const MobilePriceAction: React.FC<MobilePriceActionProps> = ({
             type="button"
             onClick={onSideToggle}
             disabled={positionSide === 'short'}
-            className={`flex-1 text-[10px] font-bold tracking-wider py-2 rounded-full ${
+            className={`flex-1 text-xs font-bold tracking-wider py-2 rounded-full ${
               positionSide === 'short'
                 ? 'bg-[#FF4B4B] text-white'
                 : 'text-white'

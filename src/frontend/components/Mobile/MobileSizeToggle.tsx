@@ -17,7 +17,7 @@ export const MobileSizeToggle: React.FC<MobileSizeToggleProps> = ({
         className={`flex-1 text-[11px] font-bold tracking-widest py-2.5 rounded-lg transition-colors ${
           activeTier === 'S' 
             ? 'bg-[#25D366] text-white border border-[#25D366] shadow-[0_0_15px_rgba(37,211,102,0.3)]' 
-            : 'text-[#8B99AE]'
+            : 'text-white'
         }`}
       >
         STOP LIMIT
@@ -28,7 +28,7 @@ export const MobileSizeToggle: React.FC<MobileSizeToggleProps> = ({
         className={`flex-1 text-[11px] font-bold tracking-widest py-2.5 rounded-lg transition-colors ${
           activeTier === 'L' 
             ? 'bg-[#25D366] text-white border border-[#25D366] shadow-[0_0_15px_rgba(37,211,102,0.3)]' 
-            : 'text-[#8B99AE]'
+            : 'text-white'
         }`}
       >
         LIMIT
@@ -39,7 +39,7 @@ export const MobileSizeToggle: React.FC<MobileSizeToggleProps> = ({
         className={`flex-1 text-[11px] font-bold tracking-widest py-2.5 rounded-lg transition-colors ${
           activeTier === 'M' 
             ? 'bg-[#25D366] text-white border border-[#25D366] shadow-[0_0_15px_rgba(37,211,102,0.3)]' 
-            : 'text-[#8B99AE]'
+            : 'text-white'
         }`}
       >
         MARKET

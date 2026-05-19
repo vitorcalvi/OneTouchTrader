@@ -56,7 +56,7 @@ export function OrderPanel({
                 ? mode === 'long'
                   ? 'text-black bg-[#25D366]'
                   : 'text-white bg-[#B92B2B]'
-                : 'text-[#8B99AE]'
+                : 'text-white'
             }`}>
             {mode.toUpperCase()}
           </button>
@@ -81,7 +81,7 @@ export function OrderPanel({
               <button key={t} onClick={() => onTierChange?.(t)}
                 aria-pressed={activeTier === t}
                 className={`flex-1 py-2 rounded-full text-center ${
-                  activeTier === t ? 'font-bold text-black bg-[#25D366]' : 'font-bold text-[#8B99AE]'
+                  activeTier === t ? 'font-bold text-black bg-[#25D366]' : 'font-bold text-white'
                 }`}>
                 <span className="text-xs">{sub}</span>
               </button>

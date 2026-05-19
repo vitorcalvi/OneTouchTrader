@@ -79,12 +79,12 @@ export const MobileControlsPanel: React.FC<MobileControlsPanelProps> = ({
       {/* Position Card */}
       <div className="w-[120px] bg-[#171E2D] rounded-2xl border border-gray-700/50 flex flex-col items-center justify-center py-2 relative overflow-hidden">
         <div className="text-white text-base font-bold mb-0.5">{displaySymbol}</div>
-        <div className="text-[#8B99AE] text-[8px] font-bold tracking-widest mb-0.5">{activeSide.toUpperCase()}</div>
+        <div className="text-white text-[8px] font-bold tracking-widest mb-0.5">{activeSide.toUpperCase()}</div>
         <div className="text-white text-2xl font-bold leading-none mb-0.5">
           {qty.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </div>
-        <div className="text-[#8B99AE] text-[8px] font-bold tracking-widest mb-2">SHARES</div>
-        <div className="text-[#8B99AE] text-[8px] font-bold tracking-widest mb-0.5">PNL</div>
+        <div className="text-white text-[8px] font-bold tracking-widest mb-2">SHARES</div>
+        <div className="text-white text-[8px] font-bold tracking-widest mb-0.5">PNL</div>
         <div className={`text-base font-bold leading-none mb-0.5 ${pnlIsPositive ? 'text-[#25D366]' : 'text-[#FF4B4B]'}`}>
           {pnlValue >= 0 ? '+' : ''}{pnlValue.toFixed(2)}
         </div>

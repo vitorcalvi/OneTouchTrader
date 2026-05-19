@@ -12,13 +12,13 @@ export function AccountStrip({ account }: AccountStripProps) {
 
   return (
     <div className="h-[28px] px-4 bg-gray-900 border-b border-gray-800 flex items-center justify-between text-[10px] font-mono">
-      <span className="text-gray-400">
+      <span className="text-white">
         EQ <span className="text-white">${equity.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
       </span>
-      <span className="text-gray-400">
+      <span className="text-white">
         BP <span className="text-white">${buyingPower.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
       </span>
-      <span className="text-gray-400">
+      <span className="text-white">
         Day P&L <span className={dayPl >= 0 ? 'text-green-500' : 'text-red-500'}>
           ${dayPl >= 0 ? '+' : ''}{dayPl.toFixed(2)}
         </span>

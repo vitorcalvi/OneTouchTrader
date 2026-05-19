@@ -70,7 +70,7 @@ export function SettingsDrawer({ open, onClose }: Props) {
               </div>
             </section>
           ))}
-          <p className="text-[#8B99AE] text-[10px] py-3">
+          <p className="text-white text-[10px] py-3">
             Defaults loaded from .env (build time). Your overrides are stored in this browser only.
           </p>
         </div>
@@ -94,17 +94,17 @@ function SettingRow({
     <div className="bg-[#1A2234] border border-gray-700/50 rounded-xl p-3">
       <div className="flex items-baseline justify-between mb-1">
         <label className="text-white text-sm font-semibold">{def.label}</label>
-        <span className="text-[#8B99AE] text-[10px] font-mono">
+        <span className="text-white text-[10px] font-mono">
           {defaultValue ?? '∅'} <span className="opacity-50">(.env)</span>
         </span>
       </div>
-      {def.help && <p className="text-[#8B99AE] text-[11px] mb-2">{def.help}</p>}
+      {def.help && <p className="text-white text-[11px] mb-2">{def.help}</p>}
       <div className="flex items-center gap-2">
         <Editor def={def} value={current} onChange={onChange} />
         {isOverridden && (
           <button
             onClick={() => onChange(null)}
-            className="text-[#8B99AE] text-[10px] font-bold px-2 py-1 rounded border border-gray-700/50"
+            className="text-white text-[10px] font-bold px-2 py-1 rounded border border-gray-700/50"
           >
             Reset
           </button>
@@ -124,7 +124,7 @@ function Editor({
         <button
           onClick={() => onChange(on ? 'false' : 'true')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-            on ? 'bg-[#25D366] text-black' : 'bg-[#1A2234] border border-gray-700/50 text-[#8B99AE]'
+            on ? 'bg-[#25D366] text-black' : 'bg-[#1A2234] border border-gray-700/50 text-white'
           }`}
         >{on ? 'ON' : 'OFF'}</button>
       );
@@ -137,7 +137,7 @@ function Editor({
               key={opt}
               onClick={() => onChange(opt)}
               className={`px-3 py-1 rounded-full text-[11px] font-bold ${
-                value === opt ? 'bg-[#25D366] text-black' : 'border border-gray-700/50 text-[#8B99AE]'
+                value === opt ? 'bg-[#25D366] text-black' : 'border border-gray-700/50 text-white'
               }`}
             >{opt}</button>
           ))}

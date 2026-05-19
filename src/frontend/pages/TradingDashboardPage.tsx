@@ -156,8 +156,8 @@ export function TradingDashboardPage() {
       <div className="w-full h-screen flex flex-col items-center justify-center bg-gray-900/95 border border-red-500/20 rounded-xl p-8">
         <AlertTriangle className="text-red-500 mb-4" size={48} />
         <h2 className="text-xl font-semibold text-white">Trading Halted</h2>
-        <p className="text-gray-300 mt-2 text-center">{authError.message}</p>
-        <p className="text-sm text-gray-400 mt-1">
+        <p className="text-white mt-2 text-center">{authError.message}</p>
+        <p className="text-white text-sm mt-1">
           {authError.isLiveMode
             ? "You were using Live mode keys. Switch to Paper mode and try again."
             : "Check your API credentials in .env file."}

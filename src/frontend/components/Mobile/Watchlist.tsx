@@ -31,7 +31,7 @@ export function Watchlist({ watchlist, onWatchlistChange, onSymbolSelect, active
               className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
                 isActive
                   ? 'bg-green-600 text-white'
-                  : 'border border-gray-700 text-gray-300 hover:border-gray-500'
+                  : 'border border-gray-700 text-white hover:border-gray-500'
               }`}
               title={`${symbol} - long press to remove`}
             >

@@ -87,7 +87,7 @@ function PresetButton({
           ? 'bg-[#B92B2B] text-white border border-[#FF4B4B] shadow-[0_0_20px_rgba(255,75,75,0.5)] rounded-xl py-2.5 text-[11px] font-bold tracking-wide'
           : isOn
             ? 'bg-[#25D366] text-white border border-[#25D366] shadow-[0_0_20px_rgba(37,211,102,0.4)] rounded-xl py-2.5 text-[11px] font-bold tracking-wide'
-            : 'bg-[#242E42] border border-white/5 text-gray-400 rounded-xl py-2.5 text-[11px] font-bold tracking-wide'
+            : 'bg-[#242E42] border border-white/5 text-white rounded-xl py-2.5 text-[11px] font-bold tracking-wide'
       }
     >
       {holding && longPressLabel ? longPressLabel : label}

@@ -69,7 +69,7 @@ export const MobileTickerSelect: React.FC<MobileTickerSelectProps> = ({
             ? 'bg-[#B92B2B] text-white border border-white/5 rounded-xl py-3 font-bold text-base flex-1 min-w-0'
             : isActive
               ? 'bg-[#25D366] text-white border border-[#25D366] shadow-[0_0_20px_rgba(37,211,102,0.4)] rounded-xl py-3 font-bold text-base flex-1 min-w-0'
-              : 'bg-[#242E42] border border-white/5 text-[#8B99AE] rounded-xl py-3 font-bold text-base flex-1 min-w-0'
+              : 'bg-[#242E42] border border-white/5 text-white rounded-xl py-3 font-bold text-base flex-1 min-w-0'
         }
       >
         {symbol}
@@ -92,7 +92,7 @@ export const MobileTickerSelect: React.FC<MobileTickerSelectProps> = ({
       {symbols.length < MAX_SYMBOLS && (
         <button
           type="button"
-          className="bg-[#242E42] border border-white/5 text-[#8B99AE] rounded-xl py-3 font-bold text-base flex-1 min-w-0"
+          className="bg-[#242E42] border border-white/5 text-white rounded-xl py-3 font-bold text-base flex-1 min-w-0"
           onClick={onAddSymbol}
           aria-label="Add symbol"
         >
