@@ -44,12 +44,8 @@ export function toPositionSymbol(symbol: string): string {
  * @param orderType - Type of order ('market', 'limit', etc.)
  * @returns Break-even price
  */
-export function calculateBreakEven(entryPrice: number, isCrypto: boolean, orderType: 'market' | 'limit' | string): number {
-  // Simple approximation - can be enhanced with actual fee calculations
-  const feeMultiplier = isCrypto ? 0.001 : 0.001; // 0.1% fee approximation
-  return orderType === 'limit'
-    ? entryPrice
-    : entryPrice * (1 + feeMultiplier);
+export function calculateBreakEven(entryPrice: number, _isCrypto: boolean, _orderType: 'market' | 'limit' | string): number {
+  return entryPrice;
 }
 
 /**

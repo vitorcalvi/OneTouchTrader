@@ -1,6 +1,3 @@
-// Hardcoded fee rate for break-even calculation
-const FEE_RATE = 0.001;  // 0.1%
-
 import { isCryptoSymbol } from '@/shared/utils/stocks';
 
 export function calculateBreakEven(
@@ -10,11 +7,7 @@ export function calculateBreakEven(
   side: 'long' | 'short' = 'long'
 ): number {
   if (entryPrice <= 0) return entryPrice;
-
-  // Use simplified fee calculation
-  const roundTripFeeRate = FEE_RATE * 2;
-  const bePrice = entryPrice * (1 + roundTripFeeRate);
-  return side === 'long' ? bePrice : entryPrice * (1 - roundTripFeeRate);
+  return side === 'long' ? entryPrice : entryPrice;
 }
 
 export function calcBePnlDistance(

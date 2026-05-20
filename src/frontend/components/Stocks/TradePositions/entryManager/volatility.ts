@@ -60,7 +60,7 @@ export function generateVolatilityWarnings(ctx: VolatilityContext): VolatilityWa
   if (ctx.breakEvenAsVolatilityPct > 0.5) {
     warnings.push({
       type: 'info',
-      message: 'Fees consume >50% of avg daily move — prefer LIMIT orders',
+      message: 'Consider LIMIT orders for tighter execution',
       field: 'breakEven',
     });
   }
@@ -142,7 +142,7 @@ export function generateValidationGuards(ctx: ValidationContext): ValidationGuar
   if (ctx.wantToEarn < ctx.breakEven.limit.amount && ctx.wantToEarn > 0) {
     guards.push({
       isValid: true,
-      reason: "Reward doesn't cover fees (limit)",
+      reason: "Reward/risk ratio may need adjustment",
       severity: 'warn',
     });
   }

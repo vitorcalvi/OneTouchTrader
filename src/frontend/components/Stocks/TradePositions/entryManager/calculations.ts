@@ -5,11 +5,6 @@ import {
   RewardRatio,
 } from './types';
 
-// Hardcoded fee rates for break-even calculations
-// (Alpaca's actual fees are not configurable per-user)
-const TAKER_FEE = 0.001;  // 0.1% for market orders
-const MAKER_FEE = 0.001;  // Simplified rate
-
 export function formatUSD(value: number): string {
   if (!Number.isFinite(value)) return '—';
   return value.toLocaleString(undefined, {
@@ -56,20 +51,14 @@ export function calculateBreakEven(
     };
   }
 
-  // Hardcoded fee rates (Alpaca actuals: ~0.1% taker, ~0.01% maker for stocks)
-  const breakEvenMarket = notional * (TAKER_FEE * 2);
-  const breakEvenLimit = notional * (MAKER_FEE * 2);
-  const breakEvenMarketPct = TAKER_FEE * 2 * 100;
-  const breakEvenLimitPct = MAKER_FEE * 2 * 100;
-
   return {
     market: {
-      amount: breakEvenMarket,
-      percentage: breakEvenMarketPct,
+      amount: 0,
+      percentage: 0,
     },
     limit: {
-      amount: breakEvenLimit,
-      percentage: breakEvenLimitPct,
+      amount: 0,
+      percentage: 0,
     },
   };
 }
