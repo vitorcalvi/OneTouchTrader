@@ -1,27 +1,18 @@
-import { getFeeConfig } from '@/config/envConfig';
-import { isCryptoSymbol } from '@/shared/utils/stocks';
+// Hardcoded fee rate for break-even calculation
+const FEE_RATE = 0.001;  // 0.1%
 
-const ALPACA_FEES = getFeeConfig();
+import { isCryptoSymbol } from '@/shared/utils/stocks';
 
 export function calculateBreakEven(
   entryPrice: number,
-  isCrypto: boolean,
-  orderType: 'market' | 'limit' = 'limit',
+  _isCrypto: boolean,
+  _orderType: 'market' | 'limit' = 'limit',
   side: 'long' | 'short' = 'long'
 ): number {
   if (entryPrice <= 0) return entryPrice;
 
-  if (!isCrypto) {
-    const roundTripFeeRate = ALPACA_FEES.STOCKS.REGULATORY_ONE_WAY * 2;
-    const bePrice = entryPrice * (1 + roundTripFeeRate);
-    return side === 'long' ? bePrice : entryPrice * (1 - roundTripFeeRate);
-  }
-
-  const feeRate =
-    orderType === 'market'
-      ? ALPACA_FEES.TIER_1.TAKER
-      : Math.max(0, ALPACA_FEES.TIER_1.MAKER);
-  const roundTripFeeRate = feeRate * 2;
+  // Use simplified fee calculation
+  const roundTripFeeRate = FEE_RATE * 2;
   const bePrice = entryPrice * (1 + roundTripFeeRate);
   return side === 'long' ? bePrice : entryPrice * (1 - roundTripFeeRate);
 }

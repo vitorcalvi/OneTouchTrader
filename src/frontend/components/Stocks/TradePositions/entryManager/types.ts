@@ -4,16 +4,6 @@ export type RewardRatio = 1 | 2 | 3 | 4 | number;
 export type StopLossPreset = 0.2 | 0.5 | 1 | number;
 export type Direction = 'LONG' | 'SHORT';
 
-export interface FeeConfig {
-  takerFeeRate: number;
-  makerFeeRate: number;
-}
-
-export const DEFAULT_FEE_CONFIG: FeeConfig = {
-  takerFeeRate: 0.0005,
-  makerFeeRate: 0.0003,
-};
-
 export interface EntryManagerState {
   symbol: string;
   avgVolatilityPct: number;
@@ -73,7 +63,6 @@ export interface ExecutionPayload {
   stopLossPct: number;
   avgVolatilityPct: number;
   slVsATR: number;
-  breakEvenFee: number;
 }
 
 export interface EntryManagerComputed {

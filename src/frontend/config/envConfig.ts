@@ -148,19 +148,6 @@ export const getTradingConfig = () => {
   };
 };
 
-export const getFeeConfig = () => {
-  return {
-    COMMISSION: 0,
-    STOCKS: {
-      REGULATORY_ONE_WAY: parseEnvNumber(envValue('VITE_ALPACA_STOCKS_FEE')),
-    },
-    TIER_1: {
-      TAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_TAKER_FEE')),
-      MAKER: parseEnvNumber(envValue('VITE_ALPACA_CRYPTO_MAKER_FEE')),
-    },
-  }
-};
-
 // === Alpaca Keys from localStorage ===
 export function getAlpacaKeys(mode: 'paper' | 'live'): { keyId: string; secret: string } {
   const keyId = localStorage.getItem(`alpaca_${mode}_key_id`) || '';

@@ -209,9 +209,6 @@ export function useEntryManager(options: UseEntryManagerOptions = {}): UseEntryM
       }
 
       const effectiveQty = isMaxQty ? computed.maxQty : selectedQty;
-      const breakEvenFee = type === 'MARKET'
-        ? computed.breakEven.market.amount
-        : computed.breakEven.limit.amount;
 
       return {
         symbol,
@@ -227,7 +224,6 @@ export function useEntryManager(options: UseEntryManagerOptions = {}): UseEntryM
         stopLossPct,
         avgVolatilityPct,
         slVsATR: computed.slInVolatilityUnits,
-        breakEvenFee,
       };
     },
     [

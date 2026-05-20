@@ -1,11 +1,14 @@
 import {
-  FeeConfig,
-  DEFAULT_FEE_CONFIG,
   Direction,
   DerivedPriceLevels,
   BreakEvenResult,
   RewardRatio,
 } from './types';
+
+// Hardcoded fee rates for break-even calculations
+// (Alpaca's actual fees are not configurable per-user)
+const TAKER_FEE = 0.001;  // 0.1% for market orders
+const MAKER_FEE = 0.001;  // Simplified rate
 
 export function formatUSD(value: number): string {
   if (!Number.isFinite(value)) return '—';
@@ -45,7 +48,6 @@ export function calculateMaxQty(availableBalance: number, price: number): number
 
 export function calculateBreakEven(
   notional: number,
-  feeConfig: FeeConfig = DEFAULT_FEE_CONFIG
 ): BreakEvenResult {
   if (notional <= 0) {
     return {
@@ -54,10 +56,11 @@ export function calculateBreakEven(
     };
   }
 
-  const breakEvenMarket = notional * (feeConfig.takerFeeRate * 2);
-  const breakEvenLimit = notional * (feeConfig.makerFeeRate * 2);
-  const breakEvenMarketPct = feeConfig.takerFeeRate * 2 * 100;
-  const breakEvenLimitPct = feeConfig.makerFeeRate * 2 * 100;
+  // Hardcoded fee rates (Alpaca actuals: ~0.1% taker, ~0.01% maker for stocks)
+  const breakEvenMarket = notional * (TAKER_FEE * 2);
+  const breakEvenLimit = notional * (MAKER_FEE * 2);
+  const breakEvenMarketPct = TAKER_FEE * 2 * 100;
+  const breakEvenLimitPct = MAKER_FEE * 2 * 100;
 
   return {
     market: {

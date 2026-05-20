@@ -4,7 +4,7 @@ export interface SettingDef {
   key: string; // e.g. 'VITE_AUTO_STOP_LOSS_PCT'
   label: string; // 'Auto Stop Loss %'
   kind: SettingKind;
-  group: string; // 'Risk' | 'Mobile UI' | 'Orders' | 'Layered Stops' | 'Ladder' | 'Fees' | 'Defaults'
+  group: string; // 'Risk' | 'Mobile UI' | 'Orders' | 'Layered Stops' | 'Ladder' | 'Defaults'
   enumValues?: string[]; // for kind:'enum'
   min?: number;
   max?: number;
@@ -13,18 +13,18 @@ export interface SettingDef {
 }
 
 export const SETTINGS: SettingDef[] = [
+  // === Brokerage (top of Settings) ===
+  { key: 'alpaca_paper_key_id', label: 'Paper API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading key' },
+  { key: 'alpaca_paper_secret', label: 'Paper API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading secret' },
+  { key: 'alpaca_live_key_id', label: 'Live API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading key' },
+  { key: 'alpaca_live_secret', label: 'Live API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading secret' },
+
   // === Defaults ===
   { key: 'VITE_DEFAULT_SYMBOL', label: 'Default Symbol', kind: 'string', group: 'Defaults' },
   { key: 'VITE_DEFAULT_QTY', label: 'Default Qty', kind: 'number', group: 'Defaults', min: 1 },
   { key: 'VITE_DEFAULT_TIME_IN_FORCE', label: 'Time In Force', kind: 'enum', group: 'Defaults', enumValues: ['day', 'gtc', 'ioc'] },
   { key: 'VITE_EXTENDED_HOURS', label: 'Extended Hours', kind: 'boolean', group: 'Defaults' },
   { key: 'VITE_ALPACA_IS_PAPER', label: 'Paper Trading', kind: 'boolean', group: 'Defaults', help: 'Same toggle as the PAPER/LIVE pill in the header.' },
-
-  // === Brokerage ===
-  { key: 'alpaca_paper_key_id', label: 'Paper API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading key' },
-  { key: 'alpaca_paper_secret', label: 'Paper API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading secret' },
-  { key: 'alpaca_live_key_id', label: 'Live API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading key' },
-  { key: 'alpaca_live_secret', label: 'Live API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading secret' },
 
   // === Mobile UI ===
   { key: 'VITE_MOBILE_DEFAULT_TICKERS', label: 'Watchlist Tickers', kind: 'csv', group: 'Mobile UI', help: 'Comma-separated, e.g. INTC,IREN' },
@@ -61,9 +61,4 @@ export const SETTINGS: SettingDef[] = [
   // === Ladder ===
   { key: 'VITE_LADDER_PRICE_STEP', label: 'Ladder Step', kind: 'number', group: 'Ladder', step: 0.01 },
   { key: 'VITE_LADDER_ORDER_COUNT', label: 'Ladder Orders', kind: 'number', group: 'Ladder', min: 1, max: 10 },
-
-  // === Fees ===
-  { key: 'VITE_ALPACA_STOCKS_FEE', label: 'Stocks Fee', kind: 'number', group: 'Fees', step: 0.00001 },
-  { key: 'VITE_ALPACA_CRYPTO_TAKER_FEE', label: 'Crypto Taker Fee', kind: 'number', group: 'Fees', step: 0.0001 },
-  { key: 'VITE_ALPACA_CRYPTO_MAKER_FEE', label: 'Crypto Maker Fee', kind: 'number', group: 'Fees', step: 0.0001 },
 ];
