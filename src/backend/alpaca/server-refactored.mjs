@@ -74,6 +74,8 @@ import {
   handleTickerLogo,
   handleScanPresets,
   isHealthRoute,
+  handleLevels,
+  handleSnapshot,
 } from "./routes/index.js";
 import {
   handlePostTradeCard,
@@ -865,6 +867,9 @@ const server = http.createServer(async (req, res) => {
       }
       const limit = validateLimit(req, res, corsHeaders, 10, 1000);
       const timeframe = searchParams.get("timeframe") || "1Day";
+      const start = searchParams.get("start");
+      const end = searchParams.get("end");
+      const live = searchParams.get("live") === "true";
       try {
         const result = await handleBars(
           symbols,
@@ -874,11 +879,32 @@ const server = http.createServer(async (req, res) => {
           reqKeyId,
           reqSecretKey,
           alpacaRequest,
+          { start, end, live },
         );
         res.writeHead(200, corsHeaders);
         res.end(
           JSON.stringify({ ...result, timestamp: new Date().toISOString() }),
         );
+      } catch (error) {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: error.message }));
+      }
+      return;
+    }
+
+    // Levels route
+    if (pathname === "/api/alpaca/levels" && req.method === "GET") {
+      const symbol = searchParams.get("symbol");
+      if (!symbol || !/^[A-Z0-9./-]{1,15}$/i.test(symbol.trim())) {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: "Valid symbol required" }));
+        return;
+      }
+      const live = searchParams.get("live") === "true";
+      try {
+        const result = await handleLevels(symbol, { live });
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify(result));
       } catch (error) {
         res.writeHead(500, corsHeaders);
         res.end(JSON.stringify({ success: false, error: error.message }));
@@ -909,6 +935,26 @@ const server = http.createServer(async (req, res) => {
         res.end(
           JSON.stringify({ ...result, timestamp: new Date().toISOString() }),
         );
+      } catch (error) {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: error.message }));
+      }
+      return;
+    }
+
+    // Snapshot route
+    if (pathname === "/api/alpaca/snapshot" && req.method === "GET") {
+      const symbols = searchParams.get("symbols");
+      if (!symbols) {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: "Symbols required" }));
+        return;
+      }
+      const live = searchParams.get("live") === "true";
+      try {
+        const result = await handleSnapshot(symbols, { live });
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify(result));
       } catch (error) {
         res.writeHead(500, corsHeaders);
         res.end(JSON.stringify({ success: false, error: error.message }));
@@ -1231,8 +1277,8 @@ const server = http.createServer(async (req, res) => {
     const fireMatch = pathname.match(/^\/api\/trade-cards\/([^/]+)\/fire$/);
     if (fireMatch && req.method === "POST") {
       const id = fireMatch[1];
-      const fireOrderFn = async (orderBody) => {
-        const url = `http://localhost:5171/api/alpaca/orders?live=false`;
+      const fireOrderFn = async (orderBody, live = false) => {
+        const url = `http://localhost:5171/api/alpaca/orders?live=${live === true}`;
         const r = await fetch(url, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -1257,6 +1303,38 @@ const server = http.createServer(async (req, res) => {
     // healthz route (bare path, for UptimeRobot)
     if (pathname === "/healthz" && req.method === "GET") {
       handleHealthz(req, res);
+      return;
+    }
+
+    // diagnostics: broker status (no full keys exposed — first 4 chars only)
+    if (pathname === "/api/diagnostics/broker-status" && req.method === "GET") {
+      const auth = (req.headers["authorization"] || "");
+      if (auth !== `Bearer ${TRADE_CARD_TOKEN}`) {
+        res.writeHead(401, corsHeaders);
+        res.end(JSON.stringify({ error: "unauthorized" }));
+        return;
+      }
+      try {
+        const [paperAcct, liveAcct] = await Promise.all([
+          alpacaPaper.getAccount().then(a => a.account_number).catch(e => `err: ${e.message}`),
+          hasLiveKeys ? alpacaLive.getAccount().then(a => a.account_number).catch(e => `err: ${e.message}`) : "no live keys",
+        ]);
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({
+          hasPaperKeys,
+          hasLiveKeys,
+          paperKeyPrefix: ALPACA_PAPER_KEY.slice(0, 4),
+          liveKeyPrefix: ALPACA_LIVE_KEY.slice(0, 4),
+          paperAccount: paperAcct,
+          liveAccount: liveAcct,
+          accountsAreSame: paperAcct === liveAcct,
+          ALPACA_LIVE_URL,
+          ALPACA_PAPER_URL,
+        }));
+      } catch (e) {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ error: e.message }));
+      }
       return;
     }
 
