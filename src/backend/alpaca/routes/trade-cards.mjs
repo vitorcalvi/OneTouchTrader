@@ -41,6 +41,33 @@ export async function handlePostTradeCard(body, expectedToken, req) {
   if (!SYMBOL_ALLOWLIST.has(body.symbol)) {
     return { status: 400, body: { error: "symbol not allowed" } };
   }
+
+  // Daily loss circuit breaker
+  const maxDailyLossStr = process.env.MAX_DAILY_LOSS_USD;
+  const maxDailyLoss = maxDailyLossStr ? Number(maxDailyLossStr) : 300;
+  const targetLive = body.live === true;
+  let dailyLossCheckSkipped = false;
+  try {
+    const acctRes = await fetch(`http://localhost:5171/api/alpaca/account?live=${targetLive}`);
+    const acctData = await acctRes.json();
+    const equity = Number(acctData?.data?.equity);
+    const lastEquity = Number(acctData?.data?.last_equity);
+    if (Number.isFinite(equity) && Number.isFinite(lastEquity)) {
+      const todayPnL = equity - lastEquity;
+      if (todayPnL < -maxDailyLoss) {
+        return {
+          status: 400,
+          body: { error: "daily loss limit breached", todayPnL: Number(todayPnL.toFixed(2)), cap: maxDailyLoss },
+        };
+      }
+    } else {
+      dailyLossCheckSkipped = true;
+    }
+  } catch (e) {
+    console.error("daily loss check failed", e);
+    dailyLossCheckSkipped = true;
+  }
+
   if (body.notional > PHASE_CAP) {
     return { status: 400, body: { error: "notional exceeds phase cap", cap: PHASE_CAP, attempted: body.notional } };
   }
@@ -126,6 +153,7 @@ if (risk <= 0 || reward <= 0) {
     status: "PENDING",
     quoteUnavailable,
     live: body.live === true,
+    dailyLossCheckSkipped: dailyLossCheckSkipped || undefined,
   };
   cards.set(id, card);
   return { status: 201, body: card };
