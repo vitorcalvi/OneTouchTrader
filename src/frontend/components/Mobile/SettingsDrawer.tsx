@@ -90,6 +90,40 @@ function SettingRow({
   const current = override ?? defaultValue ?? '';
   const isOverridden = override != null && override !== '';
 
+  // Show warning banner for Brokerage section
+  if (def.group === 'Brokerage') {
+    return (
+      <div className="bg-[#1A2234] border border-gray-700/50 rounded-xl p-3 col-span-2">
+        <div className="flex items-start gap-2 mb-3">
+          <span className="text-yellow-400 text-xs">⚠</span>
+          <p className="text-white text-[11px] leading-relaxed">
+            Your Alpaca API keys are stored ONLY in your browser's localStorage on this device. 
+            They never reach our servers. If you clear browser data, switch device, or use private/incognito mode, 
+            you'll need to re-enter them. We cannot recover them for you.
+          </p>
+        </div>
+        <div className="flex items-baseline justify-between mb-1">
+          <label className="text-white text-sm font-semibold">{def.label}</label>
+          <span className="text-white text-[10px] font-mono">
+            {defaultValue ?? '∅'} <span className="opacity-50">(.env)</span>
+          </span>
+        </div>
+        {def.help && <p className="text-white text-[11px] mb-2">{def.help}</p>}
+        <div className="flex items-center gap-2">
+          <Editor def={def} value={current} onChange={onChange} />
+          {isOverridden && (
+            <button
+              onClick={() => onChange(null)}
+              className="text-white text-[10px] font-bold px-2 py-1 rounded border border-gray-700/50"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#1A2234] border border-gray-700/50 rounded-xl p-3">
       <div className="flex items-baseline justify-between mb-1">
@@ -160,7 +194,7 @@ function Editor({
     default:
       return (
         <input
-          type="text"
+          type={def.kind === 'password' ? 'password' : 'text'}
           value={value}
           onChange={e => onChange(e.target.value)}
           className="flex-1 bg-[#0B1120] border border-gray-700/50 rounded px-2 py-1 text-white text-sm font-mono"

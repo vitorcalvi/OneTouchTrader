@@ -1298,7 +1298,7 @@ const server = http.createServer(async (req, res) => {
 
       if (session.customer_details?.email) {
         resend.emails.send({
-          from: 'Fireup Trader <noreply@trader.dyagnosys.com>',
+          from: 'Fireup Trader <recovery@dyagnosys.com>',
           to: session.customer_details.email,
           subject: 'Your Fireup Trader license',
           text: `Your license token (paste into app):\n\n${jwt}\n\nThis token expires in 24h. Open: ${APP_URL}/#license=${jwt}`,
@@ -1357,7 +1357,7 @@ const server = http.createServer(async (req, res) => {
             const tier = TIER_BY_PRICE[priceId] || 'pro';
             const jwt = await issueJwt({ customer_id: cust.id, tier, status: active.status });
             await resend.emails.send({
-              from: 'Fireup Trader <noreply@trader.dyagnosys.com>',
+              from: 'Fireup Trader <recovery@dyagnosys.com>',
               to: email,
               subject: 'Your Fireup Trader license (recovery)',
               text: `Here's a fresh license token:\n\n${jwt}\n\nOpen: ${APP_URL}/#license=${jwt}`,

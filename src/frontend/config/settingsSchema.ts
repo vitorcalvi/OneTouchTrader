@@ -1,4 +1,4 @@
-export type SettingKind = 'string' | 'number' | 'boolean' | 'enum' | 'csv';
+export type SettingKind = 'string' | 'number' | 'boolean' | 'enum' | 'csv' | 'password';
 
 export interface SettingDef {
   key: string; // e.g. 'VITE_AUTO_STOP_LOSS_PCT'
@@ -19,6 +19,12 @@ export const SETTINGS: SettingDef[] = [
   { key: 'VITE_DEFAULT_TIME_IN_FORCE', label: 'Time In Force', kind: 'enum', group: 'Defaults', enumValues: ['day', 'gtc', 'ioc'] },
   { key: 'VITE_EXTENDED_HOURS', label: 'Extended Hours', kind: 'boolean', group: 'Defaults' },
   { key: 'VITE_ALPACA_IS_PAPER', label: 'Paper Trading', kind: 'boolean', group: 'Defaults', help: 'Same toggle as the PAPER/LIVE pill in the header.' },
+
+  // === Brokerage ===
+  { key: 'alpaca_paper_key_id', label: 'Paper API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading key' },
+  { key: 'alpaca_paper_secret', label: 'Paper API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca paper trading secret' },
+  { key: 'alpaca_live_key_id', label: 'Live API Key ID', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading key' },
+  { key: 'alpaca_live_secret', label: 'Live API Secret', kind: 'password', group: 'Brokerage', help: 'Alpaca live trading secret' },
 
   // === Mobile UI ===
   { key: 'VITE_MOBILE_DEFAULT_TICKERS', label: 'Watchlist Tickers', kind: 'csv', group: 'Mobile UI', help: 'Comma-separated, e.g. INTC,IREN' },

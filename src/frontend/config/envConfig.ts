@@ -76,11 +76,17 @@ export const getEnvConfig = (): AlpacaConfig => {
   const tierRaw = (envValue('VITE_MOBILE_DEFAULT_TIER') as 'M' | 'L' | 'S') || 'L';
   const defaultTier: 'M' | 'L' | 'S' = ['M', 'L', 'S'].includes(tierRaw) ? tierRaw : 'L';
 
+  // Read Alpaca keys from overrides (localStorage) first, then env
+  const paperKeyId = envValue('alpaca_paper_key_id') || '';
+  const paperSecret = envValue('alpaca_paper_secret') || '';
+  const liveKeyId = envValue('alpaca_live_key_id') || '';
+  const liveSecret = envValue('alpaca_live_secret') || '';
+
   return {
-    paperApiKey: '',
-    paperApiSecret: '',
-    liveApiKey: '',
-    liveApiSecret: '',
+    paperApiKey: paperKeyId,
+    paperApiSecret: paperSecret,
+    liveApiKey: liveKeyId,
+    liveApiSecret: liveSecret,
     isPaper: parseEnvBool(envValue('VITE_ALPACA_IS_PAPER')),
     defaults: {
       extendedHours: parseEnvBool(envValue('VITE_EXTENDED_HOURS')),
@@ -154,3 +160,15 @@ export const getFeeConfig = () => {
     },
   }
 };
+
+// === Alpaca Keys from localStorage ===
+export function getAlpacaKeys(mode: 'paper' | 'live'): { keyId: string; secret: string } {
+  const keyId = localStorage.getItem(`alpaca_${mode}_key_id`) || '';
+  const secret = localStorage.getItem(`alpaca_${mode}_secret`) || '';
+  return { keyId, secret };
+}
+
+export function hasAlpacaKeys(mode: 'paper' | 'live'): boolean {
+  const { keyId, secret } = getAlpacaKeys(mode);
+  return Boolean(keyId && secret);
+}
