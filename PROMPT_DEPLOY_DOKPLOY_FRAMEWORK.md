@@ -553,42 +553,66 @@ Astro auto-bundles CSS imports and inlines critical CSS into `<style>` in the he
 
 ---
 
-### Lesson 19 — Three deployment bugs and the lessons to avoid them
+### Lesson 19 — Three deployment bugs (packages, lockfile, git fetch)
 
 **When:** PROMPT_DEPLOY_STRIPE_LICENSING.md 2026-05-20
 
-**Bug 1 — Missing package.json/staging**
+**Bugs encountered:**
 
-**What happened:** Committed `server-refactorated.mjs` with new imports (`import Stripe from 'stripe'`, etc.) but forgot to stage `package.json` and `yarn.lock`. Result: `Cannot find package 'stripe'` in production.
+1. **Missing package.json/staging** — Committed `server-refactored.mjs` with new imports but forgot to stage `package.json` and `yarn.lock`. Result: `Cannot find package 'stripe'`.
+   - **Fix:** Commit 0128e374 added the deps.
+   - **Lesson:** Always `git status` before committing. When you add imports, `package.json` AND lockfile must be in the same commit.
 
-**Fix:** Commit 0128e374 added the three deps to `package.json`.
+2. **Stale lockfile** — Dockerfile uses `yarn install --frozen-lockfile` but `yarn.lock` didn't list new deps.
+   - **Fix:** Commit 996315bf regenerated `yarn.lock`.
+   - **Lesson:** Commit lockfile with `package.json`. Always run `docker build .` locally before pushing infrastructure changes.
 
-**Lesson:** Before every commit that imports new packages, run `git status` and verify `package.json` AND the lockfile are both staged. Better: `git add -p` so you see what you're committing.
+3. **application.deploy does NOT re-pull from GitHub** — Three redeploys built the same broken image because Dokploy used cached local checkout.
+   - **Fix:** `ssh vitor@192.168.1.45 'cd /etc/dokploy/applications/<appName>/code && sudo git fetch origin main && sudo git reset --hard origin/main'`
+   - **Lesson:** `application.deploy` NEVER re-pulls from GitHub. Force a fresh pull via SSH before every API deploy.
 
-**Bug 2 — Stale lockfile**
+---
 
-**What happened:** Used `yarn install --frozen-lockfile` in Dockerfile, but `yarn.lock` didn't list the new deps. Build failed because lockfile was stale.
+### Lesson 20 — Docker daemon DNS misconfiguration
 
-**Fix:** Commit 996315bf regenerated `yarn.lock` with the new deps.
+**When:** PROMPT_DEPLOY_STRIPE_LICENSING.md 2026-05-20
 
-**Lesson:** After `npm install` / `yarn add`, you MUST commit BOTH `package.json` AND the lockfile. Always. And run `docker build .` locally at least once before pushing a Dockerfile-based deploy — it's 60 seconds and catches all the "works on my machine" bugs.
+**What happened:** Container `/etc/resolv.conf` had no external nameservers (`127.0.0.11` only). Build couldn't resolve `auth.docker.io` or `api.github.com`.
 
-**Bug 3 — application.deploy does NOT re-pull from GitHub**
+**Symptom:** `getaddrinfo EAI_AGAIN <host>` or "failed to fetch anonymous token" during builds.
 
-**What happened:** Even after fixing bugs 1 and 2, `application.deploy` rebuilt from the cached local checkout at `/etc/dokploy/applications/<appName>/code/` which was still at old commit. Three successive deploys all built the same broken image.
-
-**Fix:** SSH into the server and manually run:
-```bash
-cd /etc/dokploy/applications/<appName>/code
-sudo git fetch origin main && sudo git reset --hard origin/main
+**Fix:** Added `/etc/docker/daemon.json`:
+```json
+{"dns": ["1.1.1.1", "8.8.8.8"]}
 ```
-Then `application.deploy` worked because the local code was fresh.
+Then `sudo systemctl restart docker` (~30s outage, containers auto-recover).
 
-**Lesson:** `application.deploy` NEVER re-pulls from GitHub. It builds whatever is currently in the local code directory. To force a fresh pull before API deploy:
+**Lesson:** If DNS resolution fails, explicitly configure Docker daemon. Verify with:
 ```bash
-ssh vitor@192.168.1.45 'cd /etc/dokploy/applications/<appName>/code && sudo git fetch origin main && sudo git reset --hard origin/main'
+sudo docker exec <any-container> getent hosts api.github.com
 ```
-Then call `application.deploy`. Alternatively, push a dummy commit to trigger the webhook path.
+
+---
+
+### Lesson 21 — Copy-paste bug: undefined body variable
+
+**When:** PROMPT_DEPLOY_STRIPE_LICENSING.md 2026-05-20
+
+**What happened:** `/recover-license` handler used `const { email } = body;` but `body` was undefined — copied from `/checkout` without updating. Result: HTTP 500.
+
+**Fix:** Commit 1e8bfcf7. Changed to `const { email } = await readBody(req);`.
+
+**Lesson:** When copy-pasting handlers, test each one. Don't trust pattern-matching.
+
+---
+
+### Lesson 22 — Legacy Dockerfile syntax directive
+
+**When:** PROMPT_DEPLOY_STRIPE_LICENSING.md 2026-05-20
+
+**What happened:** `Dockerfile.backend` had `# syntax=docker/dockerfile:1.7` which forced an unnecessary Docker Hub pull.
+
+**Fix:** Omitted the `# syntax=` directive from future Dockerfiles unless a frontend feature actually requires it.
 
 ---
 

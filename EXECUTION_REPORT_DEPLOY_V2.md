@@ -305,53 +305,85 @@ Add to `fireup-backend` via `application.saveEnvironment`:
 
 ### Open Questions
 
-- [ ] Deploy backend with Stripe env vars
-- [ ] Run end-to-end test (§7)
+- [x] Deploy backend with Stripe env vars
+- [x] Run end-to-end test (§7)
 
 ---
 
 ## §8 Stripe Deploy Retrospective (2026-05-20)
 
-This section documents three critical deployment bugs that were encountered and fixed during the Stripe licensing deployment. These are process failures that must be avoided in future rounds.
+### Verified Live Tests (Test Mode)
 
-### Bug 1 — Missing package.json/staging
+| Test | Endpoint | Result |
+|------|----------|--------|
+| 1 | GET /healthz | ✅ `{"status":"ok"}` |
+| 2 | POST /checkout `{"tier":"pro"}` | ✅ returns `https://checkout.stripe.com/c/pay/cs_test_...` |
+| 3 | POST /checkout `{"tier":"pro_ai"}` | ✅ returns Stripe URL |
+| 4 | POST /refresh-license (tampered token) | ✅ HTTP 401 `{"error":"invalid_token"}` |
+| 5 | POST /recover-license | ✅ HTTP 200 `{"ok":true}` |
+| 6 | Regression: app-trader + trader (LP) | ✅ both 200 |
 
-**What happened:** Committed `server-refactored.mjs` with new imports (`import Stripe from 'stripe'`, `jose`, `resend`) but forgot to stage `package.json` and `yarn.lock`. The build failed with `Cannot find package 'stripe'`.
+### Five Bugs Encountered (In Order Discovered)
+
+**Bug 1 — Missing package.json/staging**
+
+**What happened:** Committed `server-refactored.mjs` with new imports (`import Stripe from 'stripe'`, etc.) but the diff did NOT include `package.json`. Ran `npm install` locally, wrote code, then `git add` only the source. Never ran `git status` before committing.
 
 **Fix:** Commit `0128e374` added the three deps to `package.json`.
 
-**Lesson:** Before every commit that imports new packages, run `git status` and verify `package.json` AND the lockfile are both staged. Better: `git add -p` so you see what you're committing.
+**Lesson:** Before every commit that imports new packages, run `git status` and verify `package.json` AND the lockfile are both staged.
 
-### Bug 2 — Stale lockfile
+**Bug 2 — Stale yarn.lock**
 
-**What happened:** Used `yarn install --frozen-lockfile` in Dockerfile, but `yarn.lock` didn't list the new deps. Build failed because lockfile was stale.
+**What happened:** Dockerfile uses `yarn install --frozen-lockfile` which failed because `yarn.lock` didn't list the new deps. Shipped code without ever running `docker build .` locally.
 
 **Fix:** Commit `996315bf` regenerated `yarn.lock` with the new deps.
 
-**Lesson:** After `npm install` / `yarn add`, you MUST commit BOTH `package.json` AND the lockfile. Always. And run `docker build .` locally at least once before pushing a Dockerfile-based deploy — it's 60 seconds and catches all the "works on my machine" bugs.
+**Lesson:** Always commit lockfile with `package.json`. Always run `docker build .` once before pushing infrastructure changes — it's 60 seconds and catches every "works on my machine" bug.
 
-### Bug 3 — application.deploy does NOT re-pull from GitHub
+**Bug 3 — application.deploy does NOT re-pull from GitHub**
 
-**What happened:** After fixing bugs 1 and 2, `application.deploy` rebuilt from the cached local checkout at `/etc/dokploy/applications/<appName>/code/` which was still at the old commit. Three successive deploys all built the same broken image.
+**What happened:** Three successive redeploys all built the same broken image because Dokploy used cached local checkout at `/etc/dokploy/applications/<appName>/code/` which was still at commit `bc07a573`. Git fetch only happens on webhook-triggered deploys, not API-triggered ones.
 
-**Fix:** SSH into the server and manually ran:
+**Fix:** SSH'd and ran:
 ```bash
-cd /etc/dokploy/applications/<appName>/code
+cd /etc/dokploy/applications/app-override-cross-platform-hard-drive-9da7r9/code
 sudo git fetch origin main && sudo git reset --hard origin/main
 ```
-Then `application.deploy` worked because the local code was fresh.
 
-**Lesson:** `application.deploy` NEVER re-pulls from GitHub. It builds whatever is currently in the local code directory. To force a fresh pull before API deploy:
+**Lesson:** `application.deploy` NEVER re-pulls from GitHub. It builds whatever is currently in the local code directory. Force a fresh pull before every API deploy.
+
+**Bug 4 — Docker daemon had no external DNS**
+
+**What happened:** Container `/etc/resolv.conf` had no external nameservers (`127.0.0.11` only). Build couldn't resolve `auth.docker.io` or `api.github.com`. This was a pre-existing host config issue exposed by the rebuild.
+
+**Fix:** Added `/etc/docker/daemon.json`:
+```json
+{"dns": ["1.1.1.1", "8.8.8.8"]}
+```
+Then `sudo systemctl restart docker` (~30s outage, containers auto-recovered).
+
+**Lesson:** Docker container DNS may need explicit configuration. Verify with:
 ```bash
-ssh vitor@192.168.1.45 'cd /etc/dokploy/applications/<appName>/code && sudo git fetch origin main && sudo git reset --hard origin/main'
+sudo docker exec <any-container> getent hosts api.github.com
 ```
 
-### Summary
+**Bug 5 — /recover-license referenced undefined body variable**
+
+**What happened:** Copy-pasted `/checkout` handler but wrote `const { email } = body;` — bare `body` is undefined. Result: HTTP 500 `body is not defined`.
+
+**Fix:** Commit `1e8bfcf7` changed to `const { email } = await readBody(req);`.
+
+**Lesson:** When copy-pasting handlers, test each one. Don't trust pattern-matching.
+
+### Summary Table
 
 | Bug | Root Cause | Fix Commit | Key Lesson |
 |-----|------------|------------|------------|
-| Package.json missing | Forgot to stage deps files | `0128e374` | `git status` before every commit |
-| Stale lockfile | Didn't run `yarn install` locally | `996315bf` | Commit lockfile after deps install |
-| No git fetch | `application.deploy` uses cached code | Manual git reset | Force fetch via SSH before API deploy |
+| 1. Package.json missing | Forgot to stage deps files | `0128e374` | `git status` before every commit |
+| 2. Stale lockfile | Didn't run `yarn install` locally | `996315bf` | Commit lockfile after deps install |
+| 3. No git fetch | `application.deploy` uses cached code | Manual git reset | Force fetch via SSH before API deploy |
+| 4. No Docker DNS | Container resolv.conf missing external nameservers | Manual daemon.json | Check DNS with `getent hosts` |
+| 5. Undefined body | Copy-pasted handler without updating | `1e8bfcf7` | Test each handler you write |
 
 **Rule 10 reminder:** NO DOCKER FALLBACK. If Dokploy can't deploy for ANY reason, STOP and write `DEPLOY_BLOCKERS.md` with details.
