@@ -33,6 +33,10 @@ import { fileURLToPath } from "url";
 import http from "http";
 import { URL } from "url";
 import { safeParseFloat } from "../shared/numbers.mjs";
+import Stripe from "stripe";
+import { SignJWT, jwtVerify } from "jose";
+import { Resend } from "resend";
+import { randomUUID } from "crypto";
 
 // Import screener services
 import {
@@ -187,6 +191,35 @@ async function checkAlpacaAPI() {
   } catch (error) {
     return { status: "unhealthy", error: error.message, latency: null };
   }
+}
+
+// === STRIPE LICENSING CONFIGURATION ===
+const stripe = process.env.STRIPE_SECRET_TEST_API ? new Stripe(process.env.STRIPE_SECRET_TEST_API) : null;
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const JWT_SECRET = process.env.JWT_SECRET ? new TextEncoder().encode(process.env.JWT_SECRET) : null;
+
+const TIER_BY_PRICE = {
+  [process.env.STRIPE_PRICE_PRO]: 'pro',
+  [process.env.STRIPE_PRICE_PRO_AI]: 'pro_ai',
+};
+
+const APP_URL = 'https://app-trader.dyagnosys.com';
+const LP_URL  = 'https://trader.dyagnosys.com';
+const TRIAL_DAYS = 14;
+const JWT_TTL_SEC = 60 * 60 * 24; // 24h
+
+// Rate limiter for recovery
+const recoverRate = new Map();
+
+async function issueJwt({ customer_id, tier, status }) {
+  if (!JWT_SECRET) throw new Error('JWT_SECRET not configured');
+  return await new SignJWT({ tier, status })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(customer_id)
+    .setJti(randomUUID())
+    .setIssuedAt()
+    .setExpirationTime(`${JWT_TTL_SEC}s`)
+    .sign(JWT_SECRET);
 }
 
 // Request body reader
@@ -1224,6 +1257,113 @@ const server = http.createServer(async (req, res) => {
     // healthz route (bare path, for UptimeRobot)
     if (pathname === "/healthz" && req.method === "GET") {
       handleHealthz(req, res);
+      return;
+    }
+
+    // === LICENSING ROUTES ===
+    // POST /checkout { tier: "pro" | "pro_ai" } → { url }
+    if (pathname === "/checkout" && req.method === "POST") {
+      const reqBody = await readBody(req);
+      const { tier } = reqBody;
+      const priceId = tier === 'pro_ai' ? process.env.STRIPE_PRICE_PRO_AI : process.env.STRIPE_PRICE_PRO;
+      if (!priceId) { res.writeHead(400, corsHeaders); res.end(JSON.stringify({ error: 'invalid_tier' })); return; }
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        line_items: [{ price: priceId, quantity: 1 }],
+        subscription_data: { trial_period_days: TRIAL_DAYS, metadata: { tier } },
+        success_url: `${LP_URL}/license?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${LP_URL}/?canceled=1`,
+        allow_promotion_codes: true,
+      });
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ url: session.url }));
+      return;
+    }
+
+    // GET /issue-license?session_id=... → { jwt }
+    if (pathname === "/issue-license" && req.method === "GET") {
+      const session_id = searchParams.get("session_id");
+      if (!session_id) { res.writeHead(400, corsHeaders); res.end(JSON.stringify({ error: 'missing_session_id' })); return; }
+
+      const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ['subscription', 'customer'] });
+      if (!session.subscription) { res.writeHead(402, corsHeaders); res.end(JSON.stringify({ error: 'payment_incomplete' })); return; }
+
+      const sub = session.subscription;
+      if (!['active', 'trialing'].includes(sub.status)) { res.writeHead(402, corsHeaders); res.end(JSON.stringify({ error: 'subscription_inactive', status: sub.status })); return; }
+
+      const priceId = sub.items.data[0].price.id;
+      const tier = TIER_BY_PRICE[priceId] || 'pro';
+      const jwt = await issueJwt({ customer_id: sub.customer, tier, status: sub.status });
+
+      if (session.customer_details?.email) {
+        resend.emails.send({
+          from: 'Fireup Trader <noreply@trader.dyagnosys.com>',
+          to: session.customer_details.email,
+          subject: 'Your Fireup Trader license',
+          text: `Your license token (paste into app):\n\n${jwt}\n\nThis token expires in 24h. Open: ${APP_URL}/#license=${jwt}`,
+        }).catch(() => {});
+      }
+
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ jwt }));
+      return;
+    }
+
+    // POST /refresh-license Authorization: Bearer <old jwt> → { jwt }
+    if (pathname === "/refresh-license" && req.method === "POST") {
+      const old = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      if (!old) { res.writeHead(401, corsHeaders); res.end(JSON.stringify({ error: 'missing_token' })); return; }
+      try {
+        const { payload } = await jwtVerify(old, JWT_SECRET);
+        const customerId = payload.sub;
+        const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 5 });
+        const active = subs.data.find(s => ['active', 'trialing'].includes(s.status));
+        if (!active) { res.writeHead(402, corsHeaders); res.end(JSON.stringify({ error: 'no_active_subscription' })); return; }
+        const priceId = active.items.data[0].price.id;
+        const tier = TIER_BY_PRICE[priceId] || 'pro';
+        const jwt = await issueJwt({ customer_id: customerId, tier, status: active.status });
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify({ jwt }));
+        return;
+      } catch {
+        res.writeHead(401, corsHeaders);
+        res.end(JSON.stringify({ error: 'invalid_token' }));
+        return;
+      }
+    }
+
+    // POST /recover-license { email } → { ok: true }
+    if (pathname === "/recover-license" && req.method === "POST") {
+      const { email } = body;
+      if (!email || typeof email !== 'string') { res.writeHead(400, corsHeaders); res.end(JSON.stringify({ error: 'invalid_email' })); return; }
+      const now = Date.now();
+      const hits = (recoverRate.get(email) || []).filter(t => now - t < 3600_000);
+      if (hits.length >= 5) { res.writeHead(429, corsHeaders); res.end(JSON.stringify({ error: 'rate_limited' })); return; }
+      recoverRate.set(email, [...hits, now]);
+      res.writeHead(200, corsHeaders);
+      res.end(JSON.stringify({ ok: true }));
+
+      // async work
+      (async () => {
+        try {
+          const search = await stripe.customers.search({ query: `email:'${email.replace(/'/g, "")}'` });
+          for (const cust of search.data) {
+            const subs = await stripe.subscriptions.list({ customer: cust.id, status: 'all', limit: 5 });
+            const active = subs.data.find(s => ['active', 'trialing'].includes(s.status));
+            if (!active) continue;
+            const priceId = active.items.data[0].price.id;
+            const tier = TIER_BY_PRICE[priceId] || 'pro';
+            const jwt = await issueJwt({ customer_id: cust.id, tier, status: active.status });
+            await resend.emails.send({
+              from: 'Fireup Trader <noreply@trader.dyagnosys.com>',
+              to: email,
+              subject: 'Your Fireup Trader license (recovery)',
+              text: `Here's a fresh license token:\n\n${jwt}\n\nOpen: ${APP_URL}/#license=${jwt}`,
+            });
+          }
+        } catch (e) { console.error('recovery failed', e); }
+      })();
       return;
     }
 
