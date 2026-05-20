@@ -88,7 +88,9 @@ export async function handleLevels(symbol, options = {}) {
     const quote = quoteData?.quotes?.[symbol] || {};
 
     // Fetch daily bars WITHOUT feed=iex (sip only has daily)
-    const dailyResp = await fetch(`https://data.alpaca.markets/v2/stocks/bars?symbols=${symbol}&timeframe=1Day&start=2026-01-01T00:00:00Z&limit=30`, {
+    // Alpaca requires explicit start; look back ~45 calendar days to cover ~30 trading days
+    const dailyStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    const dailyResp = await fetch(`https://data.alpaca.markets/v2/stocks/bars?symbols=${symbol}&timeframe=1Day&limit=30&start=${dailyStart}`, {
       headers: {
         "APCA-API-KEY-ID": creds.key,
         "APCA-API-SECRET-KEY": creds.secret,
@@ -107,7 +109,12 @@ export async function handleLevels(symbol, options = {}) {
       volume: regularBars.reduce((sum, b) => sum + b.v, 0),
     };
 
-    const priorDay = symbolDaily.length >= 2 ? symbolDaily[1] : (symbolDaily.length >= 1 ? symbolDaily[0] : null);
+    // Prior day = most recent daily bar dated BEFORE today (UTC).
+    // Free-tier Alpaca may exclude today's in-progress daily bar entirely, so the last bar
+    // could already be the prior completed day. Filter to dates < today UTC and pick latest.
+    const todayUtc = new Date().toISOString().slice(0, 10);
+    const completedDays = symbolDaily.filter(b => (b.t || "").slice(0, 10) < todayUtc);
+    const priorDay = completedDays.length > 0 ? completedDays[completedDays.length - 1] : null;
 
     const preMarket = premarketBars.length > 0 ? {
       high: Math.max(...premarketBars.map(b => b.h)),

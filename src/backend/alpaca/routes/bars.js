@@ -25,11 +25,20 @@ export async function handleBars(
   const { start, end, live } = options;
   const limitValue = Math.max(1, Math.min(10000, safeParseInt(limit, 10)));
 
+  // For daily timeframe, don't restrict to today - get most recent bars
+  // For intraday, default to today if no range specified
+  const isDaily = timeframe === "1Day";
+
   let startTime, endTime;
 
   if (start && end) {
     startTime = start;
     endTime = end;
+  } else if (isDaily) {
+    // Daily bars require an explicit start. Look back ~45 calendar days to cover ~30 trading days.
+    // Omit `end` for daily — Alpaca free-tier SIP rejects "recent" (today's in-progress) data.
+    startTime = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
+    endTime = undefined;
   } else {
     const todayStart = getTodayStartET();
     startTime = todayStart.toISOString();
@@ -40,10 +49,18 @@ export async function handleBars(
     symbols: symbols,
     timeframe: timeframe,
     limit: String(limitValue),
-    start: startTime,
-    end: endTime,
-    feed: "iex",
   });
+
+  // Only add time range for non-daily or when explicitly provided
+  if (startTime) alpacaParams.set("start", startTime);
+  if (endTime) alpacaParams.set("end", endTime);
+
+  // Daily bars require SIP feed (IEX doesn't have daily)
+  if (isDaily) {
+    // No feed param - use SIP for daily
+  } else {
+    alpacaParams.set("feed", "iex");
+  }
 
   const bars = await alpacaRequest(
     `/v2/stocks/bars?${alpacaParams.toString()}`,

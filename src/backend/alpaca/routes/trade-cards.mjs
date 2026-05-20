@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-const MAX_NOTIONAL = 20000;
 const SYMBOL_ALLOWLIST = new Set(["INTC", "QQQ", "IREN"]);
 const DEFAULT_EXPIRY_MS = 5 * 60 * 1000;
 
 const cards = new Map();
+
+// Phase cap from env (Task 4)
+const DEFAULT_PHASE_CAP = 10000;
+const phaseCapStr = process.env.MAX_NOTIONAL_PHASE;
+const PHASE_CAP = phaseCapStr ? Number(phaseCapStr) : DEFAULT_PHASE_CAP;
 
 function expireStale() {
   const now = Date.now();
@@ -37,14 +41,66 @@ export async function handlePostTradeCard(body, expectedToken, req) {
   if (!SYMBOL_ALLOWLIST.has(body.symbol)) {
     return { status: 400, body: { error: "symbol not allowed" } };
   }
-  if (body.notional > MAX_NOTIONAL) {
-    return { status: 400, body: { error: "notional exceeds max" } };
+  if (body.notional > PHASE_CAP) {
+    return { status: 400, body: { error: "notional exceeds phase cap", cap: PHASE_CAP, attempted: body.notional } };
   }
   if (!["LONG", "SHORT"].includes(body.direction)) {
     return { status: 400, body: { error: "invalid direction" } };
   }
-  if (!["MARKET", "LIMIT"].includes(body.entryType)) {
+  if (!["MARKET", "LIMIT", "STOP", "STOP_LIMIT"].includes(body.entryType)) {
     return { status: 400, body: { error: "invalid entryType" } };
+  }
+
+  // R:R minimum (Task 4)
+  const minRR = Number(process.env.MIN_RR_RATIO || "2.0");
+  const isLong = body.direction === "LONG";
+  const entryRef = body.entryType === "STOP" || body.entryType === "STOP_LIMIT"
+    ? Number(body.stopTriggerPrice) : Number(body.entryPrice);
+  const risk = isLong ? entryRef - Number(body.stopLoss) : Number(body.stopLoss) - entryRef;
+  const reward = isLong ? Number(body.takeProfit1) - entryRef : entryRef - Number(body.takeProfit1);
+if (risk <= 0 || reward <= 0) {
+    return { status: 400, body: { error: "invalid risk/reward: bad SL or TP relative to entry" } };
+  }
+  const rr = reward / risk;
+  if (rr < minRR) {
+    return { status: 400, body: { error: `R:R ${rr.toFixed(2)} below minimum ${minRR}`, risk, reward } };
+  }
+
+  const isStopEntry = body.entryType === "STOP" || body.entryType === "STOP_LIMIT";
+  if (isStopEntry) {
+    if (body.stopTriggerPrice == null || body.stopTriggerPrice <= 0) {
+      return { status: 400, body: { error: "stopTriggerPrice required for stop entries" } };
+    }
+  }
+
+  let quote = null;
+  let quoteUnavailable = false;
+  try {
+    const res = await fetch(`http://localhost:5171/api/alpaca/quotes?symbols=${body.symbol}`);
+    const data = await res.json();
+    quote = data?.data?.quotes?.[body.symbol];
+  } catch (e) {
+    console.error("Quote fetch failed", e);
+    quoteUnavailable = true;
+  }
+
+  if (quote && isStopEntry) {
+    if (body.direction === "SHORT" && body.stopTriggerPrice >= quote.bp) {
+      return { status: 400, body: { error: "SHORT stop price must be < bid" } };
+    }
+    if (body.direction === "LONG" && body.stopTriggerPrice <= quote.ap) {
+      return { status: 400, body: { error: "LONG stop price must be > ask" } };
+    }
+  }
+
+  const referencePriceForShares =
+    body.entryType === "STOP" ? Number(body.stopTriggerPrice)
+    : body.entryType === "STOP_LIMIT" ? Number(body.entryPrice)
+    : body.entryType === "LIMIT" ? Number(body.entryPrice)
+    : Number(body.entryPrice);
+
+  if (!Number.isFinite(referencePriceForShares) || referencePriceForShares <= 0) {
+    return { status: 400, body: { error: "invalid reference price for share calculation" } };
   }
 
   const id = randomUUID();
@@ -58,15 +114,18 @@ export async function handlePostTradeCard(body, expectedToken, req) {
     direction: body.direction,
     entryType: body.entryType,
     entryPrice: Number(body.entryPrice),
+    stopTriggerPrice: isStopEntry ? Number(body.stopTriggerPrice) : undefined,
     stopLoss: Number(body.stopLoss),
     takeProfit1: Number(body.takeProfit1),
     takeProfit2: body.takeProfit2 != null ? Number(body.takeProfit2) : undefined,
     notional: Number(body.notional),
-    shares: Math.floor(Number(body.notional) / Number(body.entryPrice)),
+    shares: Math.floor(Number(body.notional) / referencePriceForShares),
     rationale: String(body.rationale),
     invalidation: String(body.invalidation),
     regime: body.regime,
     status: "PENDING",
+    quoteUnavailable,
+    live: body.live === true,
   };
   cards.set(id, card);
   return { status: 201, body: card };
@@ -89,6 +148,28 @@ export async function handleFireTradeCard(id, fireOrderFn) {
   if (card.status !== "PENDING") {
     return { status: 409, body: { error: `cannot fire status=${card.status}` } };
   }
+
+  try {
+    const res = await fetch(`http://localhost:5171/api/alpaca/quotes?symbols=${card.symbol}`);
+    const data = await res.json();
+    const quote = data?.data?.quotes?.[card.symbol];
+    if (quote) {
+      const mid = (quote.bp + quote.ap) / 2;
+      const ref = ["STOP", "STOP_LIMIT"].includes(card.entryType) ? card.stopTriggerPrice : card.entryPrice;
+      const drift = Math.abs(mid - ref) / ref;
+      if (drift > 0.005) {
+        card.status = "REJECTED";
+        card.rejectionReason = `drift guard: mid ${mid.toFixed(2)} drifted ${(drift * 100).toFixed(2)}% from reference ${ref.toFixed(2)}`;
+        return { status: 409, body: card };
+      }
+    } else {
+      card.driftCheckSkipped = true;
+    }
+  } catch (e) {
+    console.error("Drift check fetch failed", e);
+    card.driftCheckSkipped = true;
+  }
+
   try {
     const orderBody = {
       symbol: card.symbol,
@@ -102,8 +183,16 @@ export async function handleFireTradeCard(id, fireOrderFn) {
     };
     if (card.entryType === "LIMIT") {
       orderBody.limit_price = String(card.entryPrice);
+    } else if (card.entryType === "STOP") {
+      orderBody.type = "stop";
+      orderBody.stop_price = String(card.stopTriggerPrice);
+    } else if (card.entryType === "STOP_LIMIT") {
+      orderBody.type = "stop_limit";
+      orderBody.stop_price = String(card.stopTriggerPrice);
+      orderBody.limit_price = String(card.entryPrice);
     }
-    const alpacaOrder = await fireOrderFn(orderBody);
+
+    const alpacaOrder = await fireOrderFn(orderBody, card.live === true);
     card.status = "FIRED";
     card.alpacaOrderId = alpacaOrder?.id || null;
     card.firedAt = new Date().toISOString();
