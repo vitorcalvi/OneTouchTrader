@@ -1335,7 +1335,8 @@ const server = http.createServer(async (req, res) => {
 
     // POST /recover-license { email } → { ok: true }
     if (pathname === "/recover-license" && req.method === "POST") {
-      const { email } = body;
+      const reqBody = await readBody(req);
+      const { email } = reqBody;
       if (!email || typeof email !== 'string') { res.writeHead(400, corsHeaders); res.end(JSON.stringify({ error: 'invalid_email' })); return; }
       const now = Date.now();
       const hits = (recoverRate.get(email) || []).filter(t => now - t < 3600_000);
