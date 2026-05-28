@@ -34,14 +34,12 @@ export class AlpacaService {
   private ws: WebSocket | null = null;
   private wsReconnectTimer: NodeJS.Timeout | null = null;
   private wsRetryCount: number = 0;
-  private wsMaxRetries: number = 3;
   private wsLatestSymbols: string[] = [];
   private wsOnQuote: ((symbol: string, price: number) => void) | null = null;
   private wsOnOrderUpdate: ((update: any) => void) | null = null;
   private orderUpdateListeners: Map<string, (update: any) => void> = new Map();
   private wsOnError: ((error: any) => void) | null = null;
   private wsFirstConnectTime: number | null = null;
-  private readonly WS_RECONNECT_TIMEOUT_MS = 5 * 60 * 1000;
   private rateLimitBackoff: number = 0;
   private lastRateLimitTime: number = 0;
   private wsConnecting: boolean = false;
@@ -1023,10 +1021,21 @@ export class AlpacaService {
               }
             }
           }
-          if (msg.T === "t" || msg.T === "q") {
-            const price = msg.p || msg.ap || msg.bp; // Trade price (p) or ask/bid price (ap/bp)
-            if (price) {
-              onQuote(msg.S, price);
+          if (msg.T === "t") {
+            if (typeof msg.p === "number" && msg.p > 0) {
+              onQuote(msg.S, msg.p);
+            }
+          } else if (msg.T === "q") {
+            const ap = typeof msg.ap === "number" ? msg.ap : 0;
+            const bp = typeof msg.bp === "number" ? msg.bp : 0;
+            // Require a two-sided quote; reject crossed/inverted books and absurd spreads (>10%)
+            // to avoid single-side IEX outliers (e.g. lone ask at half-price flipping the display).
+            if (ap > 0 && bp > 0 && ap >= bp) {
+              const mid = (ap + bp) / 2;
+              const spreadPct = (ap - bp) / mid;
+              if (spreadPct <= 0.1) {
+                onQuote(msg.S, mid);
+              }
             }
           }
           if (msg.T === "trade_update") {
@@ -1060,19 +1069,9 @@ export class AlpacaService {
       if (this.ws !== ws) return;
       this.wsConnecting = false;
 
-      // Check global reconnect timeout
-      const elapsed = Date.now() - (this.wsFirstConnectTime || 0);
-      if (elapsed > this.WS_RECONNECT_TIMEOUT_MS) {
-        console.error("[AlpacaWS] Reconnect timeout exceeded — giving up");
-        toast.error("Live price feed disconnected. Refresh to reconnect.");
-        this.wsFirstConnectTime = null;
-        return;
-      }
+      this.wsRetryCount += 1;
 
-      if (
-        this.wsRetryCount < this.wsMaxRetries &&
-        this.wsLatestSymbols.length > 0
-      ) {
+      if (this.wsLatestSymbols.length > 0) {
         const backoffMs = Math.min(
           3000 * Math.pow(2, this.wsRetryCount),
           30000,
@@ -1096,7 +1095,10 @@ export class AlpacaService {
       this.wsReconnectTimer = null;
     }
     if (this.ws) {
-      if (this.ws.readyState === WebSocket.OPEN) {
+      if (
+        this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING
+      ) {
         this.ws.close(1000);
       }
       this.ws = null;

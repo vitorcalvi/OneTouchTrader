@@ -45,6 +45,7 @@ import { handleBars } from "./bars.js";
 import { handleDocumentation } from "./documentation.js";
 import { handleTickerLogo } from "./ticker-logo.js";
 import { handleLevels, handleSnapshot } from "./levels.mjs";
+import { handleTickLevels } from "./tick-levels.mjs";
 
 export {
   handleLiveHealth,
@@ -77,4 +78,5 @@ export {
   handleTickerLogo,
   handleLevels,
   handleSnapshot,
+  handleTickLevels,
 };

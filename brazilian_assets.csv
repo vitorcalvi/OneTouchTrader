@@ -1,0 +1,12 @@
+symbol,name,exchange,LONG,SHORT
+EWZ,iShares MSCI Brazil ETF,ARCA,TRUE,TRUE
+EWZS,iShares MSCI Brazil Small-Cap ETF,NASDAQ,TRUE,TRUE
+BRAZ,Global X Brazil Active ETF,ARCA,TRUE,FALSE
+FLBR,Franklin FTSE Brazil ETF,ARCA,TRUE,FALSE
+BRZU,Direxion Daily MSCI Brazil Bull 2X ETF,ARCA,TRUE,FALSE
+BZQ,ProShares UltraShort MSCI Brazil Capped,ARCA,TRUE,FALSE
+BRF,VanEck Brazil Small-Cap ETF,ARCA,TRUE,FALSE
+UBR,ProShares Ultra MSCI Brazil Capped,ARCA,TRUE,FALSE
+GRO,Brazil Potash Corp.,AMEX,TRUE,FALSE
+ASAIY,SENDAS DISTRIBUIDORA S A SPONSORED ADR (Brazil),OTC,TRUE,FALSE
+MBRFY,Marfrig Global Foods SA Sponsored ADR (Brazil),OTC,TRUE,FALSE

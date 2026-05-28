@@ -76,6 +76,7 @@ import {
   isHealthRoute,
   handleLevels,
   handleSnapshot,
+  handleTickLevels,
 } from "./routes/index.js";
 import {
   handlePostTradeCard,
@@ -903,6 +904,25 @@ const server = http.createServer(async (req, res) => {
       const live = searchParams.get("live") === "true";
       try {
         const result = await handleLevels(symbol, { live });
+        res.writeHead(200, corsHeaders);
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        res.writeHead(500, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: error.message }));
+      }
+      return;
+    }
+
+    // Tick-levels route - SL/TP from raw tick data
+    if (pathname === "/api/alpaca/tick-levels" && req.method === "GET") {
+      const symbol = searchParams.get("symbol");
+      if (!symbol || !/^[A-Z0-9./-]{1,15}$/i.test(symbol.trim())) {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ success: false, error: "Valid symbol required" }));
+        return;
+      }
+      try {
+        const result = await handleTickLevels(symbol);
         res.writeHead(200, corsHeaders);
         res.end(JSON.stringify(result));
       } catch (error) {

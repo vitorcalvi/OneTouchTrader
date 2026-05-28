@@ -507,11 +507,47 @@ export function MobileTradingPage() {
       return;
     }
 
-    const slPct = (tradingCfg.autoStopLossPct ?? 1) / 100;
-    const tpPct = (tradingCfg.autoTakeProfitPct ?? 2) / 100;
+    // Fetch tick-based SL/TP levels from backend
+    let slPrice: number, tpPrice: number;
+    try {
+      const tickLevelsResp = await fetch(`/api/alpaca/tick-levels?symbol=${activeSymbol}`);
+      const tickData = await tickLevelsResp.json();
+      
+      if (tickData?.success && tickData?.data) {
+        const tickLevels = tickData.data;
+        // Use tick-based calculation
+        slPrice = side === 'buy' 
+          ? triggerPrice - tickLevels.slDistance 
+          : triggerPrice + tickLevels.slDistance;
+        tpPrice = side === 'buy' 
+          ? triggerPrice + tickLevels.tpDistance 
+          : triggerPrice - tickLevels.tpDistance;
+        
+        // Ensure TP is at least $0.01 away from entry (Alpaca bracket order requirement)
+        const minTpDistance = 0.01;
+        if (side === 'buy' && tpPrice < triggerPrice + minTpDistance) {
+          tpPrice = triggerPrice + minTpDistance;
+        } else if (side === 'sell' && tpPrice > triggerPrice - minTpDistance) {
+          tpPrice = triggerPrice - minTpDistance;
+        }
+      } else {
+        // Fallback to percentage-based if tick levels fail
+        const slPct = (tradingCfg.autoStopLossPct ?? 1) / 100;
+        const tpPct = (tradingCfg.autoTakeProfitPct ?? 2) / 100;
+        slPrice = side === 'buy' ? triggerPrice * (1 - slPct) : triggerPrice * (1 + slPct);
+        tpPrice = side === 'buy' ? triggerPrice * (1 + tpPct) : triggerPrice * (1 - tpPct);
+      }
+    } catch {
+      // Fallback to percentage-based on error
+      const slPct = (tradingCfg.autoStopLossPct ?? 1) / 100;
+      const tpPct = (tradingCfg.autoTakeProfitPct ?? 2) / 100;
+      slPrice = side === 'buy' ? triggerPrice * (1 - slPct) : triggerPrice * (1 + slPct);
+      tpPrice = side === 'buy' ? triggerPrice * (1 + tpPct) : triggerPrice * (1 - tpPct);
+    }
 
-    const slPrice = side === 'buy' ? triggerPrice * (1 - slPct) : triggerPrice * (1 + slPct);
-    const tpPrice = side === 'buy' ? triggerPrice * (1 + tpPct) : triggerPrice * (1 - tpPct);
+    // Round to 2 decimal places for Alpaca compliance
+    slPrice = Math.round(slPrice * 100) / 100;
+    tpPrice = Math.round(tpPrice * 100) / 100;
 
     const orderType: MobileOrderType = activeTier === 'M' ? 'market' : activeTier === 'L' ? 'limit' : 'stop_limit';
     
@@ -535,11 +571,11 @@ export function MobileTradingPage() {
 
     try {
       await service.submitOrder(basePayload);
-      toast.success(`SL-TP ${side.toUpperCase()} ${computedQty} ${activeSymbol} @ $${triggerPrice.toFixed(2)}, SL $${slPrice.toFixed(2)}, TP $${tpPrice.toFixed(2)}`);
+      toast.success(`BY TICK ${side.toUpperCase()} ${computedQty} ${activeSymbol} @ $${triggerPrice.toFixed(2)}, SL $${slPrice.toFixed(2)}, TP $${tpPrice.toFixed(2)}`);
       loadData();
       void loadOpenOrders();
     } catch (err) {
-      toast.error(`SL-TP order failed: ${safeErrorMessage(err, 'Order failed')}`);
+      toast.error(`BY TICK order failed: ${safeErrorMessage(err, 'Order failed')}`);
     }
   }, [service, activeSymbol, currentPrice, limitPrice, activeTier, computedQty, tradingCfg.autoStopLossPct, tradingCfg.autoTakeProfitPct, loadData, loadOpenOrders]);
 
@@ -1131,7 +1167,10 @@ return (
 
       <MobileSizeToggle
         activeTier={activeTier}
-        onTierChange={setActiveTier}
+        onTierChange={(tier) => {
+          setActiveTier(tier);
+          if (tier === 'L') void handlePriceRefresh('L');
+        }}
       />
 
        <MobilePriceAction
@@ -1162,7 +1201,7 @@ return (
       <section className="grid grid-cols-4 gap-2">
         {(['o-sl', 'ladder', 'l-and-f', 'sl-tp'] as PresetId[]).map((id) => {
           const isOn = activePresets.has(id);
-          const label = id === 'o-sl' ? 'O-SL' : id === 'ladder' ? 'LADDER' : id === 'l-and-f' ? 'L&F' : id === 'sl-tp' ? 'SL-TP' : 'PRE-SET';
+          const label = id === 'o-sl' ? 'O-SL' : id === 'ladder' ? 'LADDER' : id === 'l-and-f' ? 'L&F' : id === 'sl-tp' ? 'BY TICK' : 'PRE-SET';
           const isLadder = id === 'ladder';
           return (
             <PresetButton
